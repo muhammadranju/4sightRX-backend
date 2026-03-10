@@ -1,10 +1,15 @@
 import cors from 'cors';
 import express, { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
+import swaggerUi from 'swagger-ui-express';
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import router from './routes';
 import { Morgan } from './shared/morgen';
 import sendResponse from './shared/sendResponse';
+
 const app = express();
 
 //morgan
@@ -12,12 +17,28 @@ app.use(Morgan.successHandler);
 app.use(Morgan.errorHandler);
 
 //body parser
-app.use(cors());
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 //file retrieve
 app.use(express.static('uploads'));
+
+// ── Swagger UI (/api-docs) ───────────────────────────────────────────────────
+// Server needs restart to pick up swagger.yaml changes
+const swaggerDocument = yaml.load(
+  fs.readFileSync(path.join(__dirname, '..', 'swagger.yaml'), 'utf8'),
+) as Record<string, unknown>;
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    customSiteTitle: '4sightRX API Docs',
+    customCss: '.swagger-ui .topbar { background-color: #1a6b4a; }',
+    swaggerOptions: { persistAuthorization: true },
+  }),
+);
 
 //router
 app.use('/api/v1', router);
