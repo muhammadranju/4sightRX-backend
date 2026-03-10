@@ -16,6 +16,12 @@ export type IUser = {
     oneTimeCode: number;
     expireAt: Date;
   };
+  webauthnChallenge?: string | null;
+  webauthnCredential?: {
+    credentialId: string;
+    publicKey: string;
+    counter: number;
+  };
 };
 
 export type UserModal = {

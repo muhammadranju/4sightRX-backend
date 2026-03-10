@@ -15,7 +15,7 @@ const userSchema = new Schema<IUser, UserModal>(
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
-      required: true,
+      default: USER_ROLES.USER,
     },
     email: {
       type: String,
@@ -40,7 +40,7 @@ const userSchema = new Schema<IUser, UserModal>(
     },
     verified: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     authentication: {
       type: {
@@ -55,6 +55,24 @@ const userSchema = new Schema<IUser, UserModal>(
         expireAt: {
           type: Date,
           default: null,
+        },
+      },
+      select: 0,
+    },
+    webauthnChallenge: {
+      type: String,
+      select: 0,
+    },
+    webauthnCredential: {
+      type: {
+        credentialId: {
+          type: String,
+        },
+        publicKey: {
+          type: String,
+        },
+        counter: {
+          type: Number,
         },
       },
       select: 0,

@@ -17,31 +17,31 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user');
   }
 
-  //send email
-  const otp = generateOTP();
-  const values = {
-    name: createUser.name,
-    otp: otp,
-    email: createUser.email!,
-  };
-  const createAccountTemplate = emailTemplate.createAccount(values);
-  emailHelper.sendEmail(createAccountTemplate);
+  // //send email
+  // const otp = generateOTP();
+  // const values = {
+  //   name: createUser.name,
+  //   otp: otp,
+  //   email: createUser.email!,
+  // };
+  // const createAccountTemplate = emailTemplate.createAccount(values);
+  // emailHelper.sendEmail(createAccountTemplate);
 
-  //save to DB
-  const authentication = {
-    oneTimeCode: otp,
-    expireAt: new Date(Date.now() + 3 * 60000),
-  };
-  await User.findOneAndUpdate(
-    { _id: createUser._id },
-    { $set: { authentication } }
-  );
+  // //save to DB
+  // const authentication = {
+  //   oneTimeCode: otp,
+  //   expireAt: new Date(Date.now() + 3 * 60000),
+  // };
+  // await User.findOneAndUpdate(
+  //   { _id: createUser._id },
+  //   { $set: { authentication } }
+  // );
 
   return createUser;
 };
 
 const getUserProfileFromDB = async (
-  user: JwtPayload
+  user: JwtPayload,
 ): Promise<Partial<IUser>> => {
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
@@ -54,7 +54,7 @@ const getUserProfileFromDB = async (
 
 const updateProfileToDB = async (
   user: JwtPayload,
-  payload: Partial<IUser>
+  payload: Partial<IUser>,
 ): Promise<Partial<IUser | null>> => {
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
