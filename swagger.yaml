@@ -1,0 +1,1279 @@
+openapi: 3.0.3
+
+info:
+  title: 4sightRX — Medication Reconciliation API
+  description: |
+    AI-powered Medication Reconciliation system for hospice and care facilities.
+    Integrates with Google Gemini AI for formulary comparison recommendations.
+
+    **Postman Testing Order:**
+    1. POST /facilities → copy facilityId
+    2. POST /patients → copy patientId
+    3. POST /therapeutics (×2 entries)
+    4. POST /facility-rules (×2 entries)
+    5. POST /medications/bulk (needs patientId + sessionId)
+    6. POST /formulary-comparison/analyze → AI recommendations
+    7. PATCH /formulary-comparison/:id/action → per recommendation
+    8. GET /formulary-comparison/summary → final report
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: Relative URL (Auto-detects host and port)
+  - url: http://localhost:5050/api/v1
+    description: Local Development Server (Port 5050)
+
+tags:
+  - name: Facilities
+    description: Manage care facilities
+  - name: Patients
+    description: Manage patients linked to facilities
+  - name: Medications
+    description: Bulk medication upload and session management
+  - name: Therapeutics
+    description: Therapeutic alternative drug mappings
+  - name: Facility Rules
+    description: Facility-specific formulary rules
+  - name: Formulary Comparison
+    description: AI-powered medication reconciliation
+
+components:
+  schemas:
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+
+    PaginatedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            totalPage:
+              type: integer
+              example: 3
+            total:
+              type: integer
+              example: 25
+        data:
+          type: array
+          items: {}
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Something went wrong
+        errorMessages:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              message:
+                type: string
+
+    FacilityBody:
+      type: object
+      required:
+        - name
+        - address
+        - state
+      properties:
+        name:
+          type: string
+          example: Comfort Care Hospice
+        address:
+          type: string
+          example: "1234 Maple Street, Dallas"
+        state:
+          type: string
+          example: TX
+
+    Facility:
+      allOf:
+        - $ref: '#/components/schemas/FacilityBody'
+        - type: object
+          properties:
+            _id:
+              type: string
+              example: 67c5a1b2e4f8d9001a2b3c4d
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    PatientBody:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - patientIdMrn
+        - dateOfBirth
+        - gender
+        - phoneNumber
+        - medicationAllergies
+        - facility
+        - admissionDate
+      properties:
+        firstName:
+          type: string
+          example: Margaret
+        lastName:
+          type: string
+          example: Thompson
+        patientIdMrn:
+          type: string
+          example: MRN-45678
+        dateOfBirth:
+          type: string
+          example: "1948-03-12"
+        age:
+          type: integer
+          example: 78
+        gender:
+          type: string
+          enum:
+            - Male
+            - Female
+            - Other's
+          example: Female
+        phoneNumber:
+          type: string
+          example: "+1-555-0100"
+        medicationAllergies:
+          type: string
+          example: Penicillin
+        facility:
+          type: string
+          example: Comfort Care Hosptial
+        admissionDate:
+          type: string
+          example: "2026-01-28"
+        notes:
+          type: string
+          example: "Hospice patient — comfort care focus"
+
+    Patient:
+      allOf:
+        - $ref: '#/components/schemas/PatientBody'
+        - type: object
+          properties:
+            _id:
+              type: string
+              example: 67c5a1c3e4f8d9001a2b3c4e
+
+    MedicationItem:
+      type: object
+      required:
+        - patientId
+        - sessionId
+        - medicationName
+        - strength
+        - form
+        - dose
+        - route
+        - frequency
+        - source
+      properties:
+        patientId:
+          type: string
+          example: 67c5a1c3e4f8d9001a2b3c4e
+        sessionId:
+          type: string
+          example: recon-session-2026-001
+        medicationName:
+          type: string
+          example: Atorvastatin
+        strength:
+          type: string
+          example: 20mg
+        form:
+          type: string
+          example: Tablet
+        dose:
+          type: string
+          example: 1 tablet
+        route:
+          type: string
+          enum:
+            - Oral (PO)
+            - Sublingual (SL)
+            - Intravenous (IV)
+            - Intramuscular (IM)
+            - Subcutaneous (SC)
+            - Topical
+            - Inhaled
+            - Rectal (PR)
+          example: Oral (PO)
+        frequency:
+          type: string
+          enum:
+            - Once daily (QD)
+            - Twice daily (BID)
+            - Three times daily (TID)
+            - 4 Times daily (QID)
+            - Every 4 hours (Q4H)
+            - Every 6 hours (Q6H)
+            - Every 8 hours (Q8H)
+            - Every 12 hours (Q12H)
+            - As needed (PRN)
+            - Once weekly
+          example: Once daily (QD)
+        source:
+          type: string
+          enum:
+            - manual
+            - ocr
+            - pdf
+          example: manual
+        duration:
+          type: string
+          example: 30 days
+        additionalInstructions:
+          type: string
+          example: At bedtime
+
+    Medication:
+      allOf:
+        - $ref: '#/components/schemas/MedicationItem'
+        - type: object
+          properties:
+            _id:
+              type: string
+              example: 67c5a1d4e4f8d9001a2b3c4f
+
+    TherapeuticBody:
+      type: object
+      required:
+        - drugName
+        - alternative
+        - drugClass
+      properties:
+        drugName:
+          type: string
+          example: Atorvastatin
+          description: Stored lowercase automatically
+        alternative:
+          type: string
+          example: Simvastatin
+        drugClass:
+          type: string
+          example: Statin
+        estimatedSavings:
+          type: number
+          example: 45
+          description: Estimated monthly USD savings
+
+    Therapeutic:
+      allOf:
+        - $ref: '#/components/schemas/TherapeuticBody'
+        - type: object
+          properties:
+            _id:
+              type: string
+              example: 67c5a2d5e4f8d9001a2b3c62
+            drugName:
+              type: string
+              example: atorvastatin
+              description: Stored as lowercase
+
+    FacilityRuleBody:
+      type: object
+      required:
+        - facilityId
+        - drugName
+        - covered
+        - ruleType
+      properties:
+        facilityId:
+          type: string
+          example: 67c5a1b2e4f8d9001a2b3c4d
+        drugName:
+          type: string
+          example: Atorvastatin
+          description: Stored lowercase automatically
+        covered:
+          type: boolean
+          example: false
+        ruleType:
+          type: string
+          enum:
+            - continue
+            - substitute
+            - discontinue
+          example: substitute
+        substituteDrug:
+          type: string
+          example: Simvastatin
+        notes:
+          type: string
+          example: "Preferred formulary tier — saves $45/month"
+
+    FacilityRule:
+      allOf:
+        - $ref: '#/components/schemas/FacilityRuleBody'
+        - type: object
+          properties:
+            _id:
+              type: string
+              example: 67c5a2c4e4f8d9001a2b3c61
+            drugName:
+              type: string
+              example: atorvastatin
+
+    FormularyComparisonResult:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 67c5a2b3e4f8d9001a2b3c60
+        medicationId:
+          type: string
+          example: 67c5a1d4e4f8d9001a2b3c4f
+        facilityId:
+          type: string
+          example: 67c5a1b2e4f8d9001a2b3c4d
+        sessionId:
+          type: string
+          example: recon-session-2026-001
+        currentMedication:
+          type: string
+          example: Atorvastatin
+        recommendedMedication:
+          type: string
+          example: Simvastatin
+        rationale:
+          type: string
+          example: "Therapeutic equivalent on preferred formulary. Simvastatin 40mg is bioequivalent to Atorvastatin 20mg."
+        estimatedSavings:
+          type: number
+          example: 45
+        hospiceCovered:
+          type: boolean
+          example: true
+        action:
+          type: string
+          enum:
+            - pending
+            - accepted
+            - declined
+            - discontinued
+          example: pending
+        acceptNote:
+          type: string
+          example: "Verified therapeutic equivalence via PharmD."
+        declineReason:
+          type: string
+          example: "Patient experienced side effects on alternative in the past."
+        declineNote:
+          type: string
+          example: "Continue current therapy per family request."
+
+    FormularySummary:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          example: recon-session-2026-001
+        changedMedications:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormularyComparisonResult'
+        continuedMedications:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormularyComparisonResult'
+        discontinuedMedications:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormularyComparisonResult'
+        totalEstimatedMonthlySavings:
+          type: number
+          example: 45
+
+paths:
+
+  # ── FACILITIES ────────────────────────────────────────────────────────────────
+
+  /facilities:
+    post:
+      tags:
+        - Facilities
+      summary: Create a facility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityBody'
+      responses:
+        '201':
+          description: Facility created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Facilities
+      summary: List all facilities (paginated)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Facilities fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /facilities/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Facility ObjectId
+        example: 67c5a1b2e4f8d9001a2b3c4d
+
+    get:
+      tags:
+        - Facilities
+      summary: Get facility by ID
+      responses:
+        '200':
+          description: Facility fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Facility not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Facilities
+      summary: Update facility (partial)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                state:
+                  type: string
+      responses:
+        '200':
+          description: Facility updated
+        '404':
+          description: Facility not found
+
+    delete:
+      tags:
+        - Facilities
+      summary: Delete facility
+      responses:
+        '200':
+          description: Facility deleted
+        '404':
+          description: Facility not found
+
+  # ── PATIENTS ──────────────────────────────────────────────────────────────────
+
+  /patients:
+    post:
+      tags:
+        - Patients
+      summary: Create a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientBody'
+            example:
+              firstName: Margaret
+              lastName: Thompson
+              patientIdMrn: MRN-45678
+              dateOfBirth: "1948-03-12"
+              age: 78
+              gender: Female
+              phoneNumber: "+1-555-0100"
+              medicationAllergies: Penicillin
+              facility: Comfort Care Hosptial
+              admissionDate: "2026-01-28"
+              notes: "Hospice patient — comfort care focus"
+      responses:
+        '201':
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Validation error or duplicate MRN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Patients
+      summary: List patients (optional facility filter)
+      parameters:
+        - in: query
+          name: facilityId
+          schema:
+            type: string
+          description: Filter by facility (optional)
+          example: 67c5a1b2e4f8d9001a2b3c4d
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Patients fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /patients/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: 67c5a1c3e4f8d9001a2b3c4e
+
+    get:
+      tags:
+        - Patients
+      summary: Get patient by ID
+      responses:
+        '200':
+          description: Patient fetched
+        '404':
+          description: Patient not found
+
+    patch:
+      tags:
+        - Patients
+      summary: Update patient fields (partial)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+                admissionDate:
+                  type: string
+      responses:
+        '200':
+          description: Patient updated
+        '404':
+          description: Patient not found
+
+    delete:
+      tags:
+        - Patients
+      summary: Delete patient
+      responses:
+        '200':
+          description: Patient deleted
+        '404':
+          description: Patient not found
+
+  # ── MEDICATIONS ───────────────────────────────────────────────────────────────
+
+  /medications/extract-text:
+    post:
+      tags:
+        - Medications
+      summary: Extract medications from prescription image (OCR)
+      description: |
+        Uses Gemini 1.5 Flash Vision to extract medication names, strengths, doses, and frequencies from an image.
+        Requires `multipart/form-data` with an `image` field.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Medications extracted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        medicationName:
+                          type: string
+                        strength:
+                          type: string
+                        form:
+                          type: string
+                        dose:
+                          type: string
+                        route:
+                          type: string
+                        frequency:
+                          type: string
+                        duration:
+                          type: string
+        '400':
+          description: Image is required or invalid format
+
+  /medications/bulk:
+    post:
+      tags:
+        - Medications
+      summary: Bulk insert medications for a session
+      description: |
+        Primary endpoint for uploading medications after OCR/upload or manual entry.
+        All medications under one reconciliation share the same `sessionId`.
+        Validates that the patient exists before inserting.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - medications
+              properties:
+                medications:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: '#/components/schemas/MedicationItem'
+            example:
+              medications:
+                - patientId: 67c5a1c3e4f8d9001a2b3c4e
+                  sessionId: recon-session-2026-001
+                  medicationName: Atorvastatin
+                  strength: 20mg
+                  form: Tablet
+                  dose: 1 tablet
+                  route: Oral (PO)
+                  frequency: Once daily (QD)
+                  source: manual
+                  additionalInstructions: At bedtime
+                - patientId: 67c5a1c3e4f8d9001a2b3c4e
+                  sessionId: recon-session-2026-001
+                  medicationName: Warfarin
+                  strength: 5mg
+                  form: Tablet
+                  dose: 1 tablet
+                  route: Oral (PO)
+                  frequency: Once daily (QD)
+                  source: manual
+                - patientId: 67c5a1c3e4f8d9001a2b3c4e
+                  sessionId: recon-session-2026-001
+                  medicationName: Lisinopril
+                  strength: 10mg
+                  form: Tablet
+                  dose: 1 tablet
+                  route: Oral (PO)
+                  frequency: Once daily (QD)
+                  source: ocr
+      responses:
+        '201':
+          description: Medications created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Empty array or invalid patientId
+        '404':
+          description: Patient not found
+
+  /medications:
+    get:
+      tags:
+        - Medications
+      summary: Get medications by sessionId
+      description: Used in the Review Screen to display all medications for a reconciliation session.
+      parameters:
+        - in: query
+          name: sessionId
+          required: true
+          schema:
+            type: string
+          example: recon-session-2026-001
+      responses:
+        '200':
+          description: Medications fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: sessionId is required
+
+  /medications/patient/{patientId}:
+    get:
+      tags:
+        - Medications
+      summary: Get all medications for a patient (paginated)
+      parameters:
+        - in: path
+          name: patientId
+          required: true
+          schema:
+            type: string
+          example: 67c5a1c3e4f8d9001a2b3c4e
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Patient medications fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '400':
+          description: Invalid patient ID
+
+  /medications/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: 67c5a1d4e4f8d9001a2b3c4f
+
+    patch:
+      tags:
+        - Medications
+      summary: Update a medication record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                strength:
+                  type: string
+                dose:
+                  type: string
+                additionalInstructions:
+                  type: string
+            example:
+              strength: 40mg
+              additionalInstructions: Take with food
+      responses:
+        '200':
+          description: Medication updated
+        '404':
+          description: Medication not found
+
+    delete:
+      tags:
+        - Medications
+      summary: Delete a medication
+      responses:
+        '200':
+          description: Medication deleted
+        '404':
+          description: Medication not found
+
+  # ── THERAPEUTICS ──────────────────────────────────────────────────────────────
+
+  /therapeutics:
+    post:
+      tags:
+        - Therapeutics
+      summary: Add a therapeutic alternative
+      description: "`drugName` is stored lowercase automatically for case-insensitive matching."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TherapeuticBody'
+            examples:
+              atorvastatin:
+                summary: Atorvastatin alternative
+                value:
+                  drugName: Atorvastatin
+                  alternative: Simvastatin
+                  drugClass: Statin
+                  estimatedSavings: 45
+              lisinopril:
+                summary: Lisinopril alternative
+                value:
+                  drugName: Lisinopril
+                  alternative: Enalapril
+                  drugClass: ACE Inhibitor
+                  estimatedSavings: 30
+      responses:
+        '201':
+          description: Therapeutic alternative created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    get:
+      tags:
+        - Therapeutics
+      summary: List all therapeutics (paginated)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Therapeutics fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /therapeutics/drug/{drugName}:
+    get:
+      tags:
+        - Therapeutics
+      summary: Look up therapeutic by drug name (case-insensitive)
+      parameters:
+        - in: path
+          name: drugName
+          required: true
+          schema:
+            type: string
+          example: Atorvastatin
+      responses:
+        '200':
+          description: Therapeutic fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: No therapeutic found for this drug
+
+  /therapeutics/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: 67c5a2d5e4f8d9001a2b3c62
+
+    patch:
+      tags:
+        - Therapeutics
+      summary: Update therapeutic record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                alternative:
+                  type: string
+                estimatedSavings:
+                  type: number
+      responses:
+        '200':
+          description: Therapeutic updated
+        '404':
+          description: Not found
+
+    delete:
+      tags:
+        - Therapeutics
+      summary: Delete therapeutic record
+      responses:
+        '200':
+          description: Therapeutic deleted
+        '404':
+          description: Not found
+
+  # ── FACILITY RULES ────────────────────────────────────────────────────────────
+
+  /facility-rules:
+    post:
+      tags:
+        - Facility Rules
+      summary: Create a facility formulary rule
+      description: |
+        Defines how a specific drug should be handled at a facility.
+        - `continue` — keep current therapy
+        - `substitute` — switch to substituteDrug
+        - `discontinue` — deprescribe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityRuleBody'
+            examples:
+              substitute:
+                summary: Substitute rule (Atorvastatin)
+                value:
+                  facilityId: 67c5a1b2e4f8d9001a2b3c4d
+                  drugName: Atorvastatin
+                  covered: false
+                  ruleType: substitute
+                  substituteDrug: Simvastatin
+                  notes: "Preferred formulary — saves $45/month"
+              discontinue:
+                summary: Discontinue rule (Warfarin)
+                value:
+                  facilityId: 67c5a1b2e4f8d9001a2b3c4d
+                  drugName: Warfarin
+                  covered: false
+                  ruleType: discontinue
+                  notes: High bleeding risk in hospice setting
+              continue:
+                summary: Continue rule (Lisinopril)
+                value:
+                  facilityId: 67c5a1b2e4f8d9001a2b3c4d
+                  drugName: Lisinopril
+                  covered: true
+                  ruleType: continue
+                  notes: "Preferred ACE inhibitor — cost-effective"
+      responses:
+        '201':
+          description: Facility rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing required fields or invalid facilityId
+
+    get:
+      tags:
+        - Facility Rules
+      summary: Get rules for a facility
+      parameters:
+        - in: query
+          name: facilityId
+          required: true
+          schema:
+            type: string
+          example: 67c5a1b2e4f8d9001a2b3c4d
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Facility rules fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '400':
+          description: facilityId is required
+
+  /facility-rules/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        example: 67c5a2c4e4f8d9001a2b3c61
+
+    patch:
+      tags:
+        - Facility Rules
+      summary: Update a facility rule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+                ruleType:
+                  type: string
+                  enum:
+                    - continue
+                    - substitute
+                    - discontinue
+                covered:
+                  type: boolean
+                substituteDrug:
+                  type: string
+      responses:
+        '200':
+          description: Rule updated
+        '404':
+          description: Rule not found
+
+    delete:
+      tags:
+        - Facility Rules
+      summary: Delete a facility rule
+      responses:
+        '200':
+          description: Rule deleted
+        '404':
+          description: Rule not found
+
+  # ── FORMULARY COMPARISON (AI) ─────────────────────────────────────────────────
+
+  /formulary-comparison/analyze:
+    post:
+      tags:
+        - Formulary Comparison
+      summary: Run AI-based formulary analysis
+      description: |
+        **Core AI endpoint.** For each medication ID:
+        1. Looks up therapeutic alternative from Therapeutics collection
+        2. Looks up facility formulary rule from Facility Rules
+        3. Builds a clinical prompt and calls **Google Gemini AI**
+        4. Saves each result as `pending` in the database
+        5. Returns all AI recommendations
+
+        > If Gemini AI is unavailable, a safe mock response is returned automatically — the session never fails.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - medicationIds
+                - facilityId
+                - sessionId
+              properties:
+                medicationIds:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                  example:
+                    - 67c5a1d4e4f8d9001a2b3c4f
+                    - 67c5a1e5e4f8d9001a2b3c50
+                    - 67c5a1f6e4f8d9001a2b3c51
+                facilityId:
+                  type: string
+                  example: 67c5a1b2e4f8d9001a2b3c4d
+                sessionId:
+                  type: string
+                  example: recon-session-2026-001
+      responses:
+        '200':
+          description: Formulary analysis complete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Formulary analysis complete
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FormularyComparisonResult'
+        '400':
+          description: Validation failed — missing or invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No medications found for the provided IDs
+
+  /formulary-comparison/{id}/action:
+    patch:
+      tags:
+        - Formulary Comparison
+      summary: Clinician records a decision on a recommendation
+      description: |
+        Updates the `action` field and optional notes/reasons.
+        - `accepted` — Clinician approves the switch to recommended drug
+        - `declined` — Clinician keeps the current therapy (requires a reason)
+        - `discontinued` — Medication to be stopped entirely
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - accepted
+                    - declined
+                    - discontinued
+                acceptNote:
+                  type: string
+                declineReason:
+                  type: string
+                  description: Select from predefined protocols
+                declineNote:
+                  type: string
+                  description: Custom notes if "Other" is selected
+            examples:
+              accept:
+                summary: Accept with note
+                value:
+                  action: accepted
+                  acceptNote: "Lower cost alternative verified."
+              decline:
+                summary: Decline with protocol reason
+                value:
+                  action: declined
+                  declineReason: "Patient request"
+                  declineNote: "Preferred to stay on brand name."
+      responses:
+        '200':
+          description: Action updated successfully
+        '404':
+          description: Recommendation not found
+
+  /formulary-comparison/summary:
+    get:
+      tags:
+        - Formulary Comparison
+      summary: Get final reconciliation summary for a session
+      description: |
+        Returns all comparison records grouped by clinician action.
+        `totalEstimatedMonthlySavings` only counts **accepted** items.
+        Displayed on the Reconciliation Complete screen.
+      parameters:
+        - in: query
+          name: sessionId
+          required: true
+          schema:
+            type: string
+          example: recon-session-2026-001
+      responses:
+        '200':
+          description: Reconciliation summary fetched
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Reconciliation summary fetched
+                  data:
+                    $ref: '#/components/schemas/FormularySummary'
+        '400':
+          description: sessionId query parameter is required

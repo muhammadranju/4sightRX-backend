@@ -13,6 +13,7 @@ module.exports = [
       globals: {
         console: 'readonly',
         process: 'readonly',
+        Buffer: 'readonly',
       },
     },
     plugins: {
