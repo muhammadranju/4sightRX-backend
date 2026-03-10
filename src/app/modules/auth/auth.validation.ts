@@ -41,10 +41,24 @@ const createChangePasswordZodSchema = z.object({
   }),
 });
 
+const createFingerprintOptionsZodSchema = z.object({
+  body: z.object({
+    deviceName: z.string().optional(),
+  }),
+});
+
+const createFingerprintVerifyZodSchema = z.object({
+  body: z.object({
+    response: z.any(),
+  }),
+});
+
 export const AuthValidation = {
   createVerifyEmailZodSchema,
   createForgetPasswordZodSchema,
   createLoginZodSchema,
   createResetPasswordZodSchema,
   createChangePasswordZodSchema,
+  createFingerprintOptionsZodSchema,
+  createFingerprintVerifyZodSchema,
 };

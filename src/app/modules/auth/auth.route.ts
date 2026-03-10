@@ -37,4 +37,18 @@ router.post(
   AuthController.changePassword
 );
 
+router.post(
+  '/fingerprint/options',
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER),
+  validateRequest(AuthValidation.createFingerprintOptionsZodSchema),
+  AuthController.getFingerprintSetupOptions
+);
+
+router.post(
+  '/fingerprint/verify',
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER),
+  validateRequest(AuthValidation.createFingerprintVerifyZodSchema),
+  AuthController.verifyFingerprintSetup
+);
+
 export const AuthRoutes = router;

@@ -24,7 +24,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     success: true,
     statusCode: StatusCodes.OK,
     message: 'User logged in successfully.',
-    data: result.createToken,
+    data: result,
   });
 });
 
@@ -66,10 +66,45 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getFingerprintSetupOptions = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user;
+    const result =
+      await AuthService.generateFingerprintRegistrationOptions(user);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: 'Fingerprint registration options generated successfully.',
+      data: result,
+    });
+  },
+);
+
+const verifyFingerprintSetup = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user;
+    const { ...payload } = req.body;
+    const result = await AuthService.verifyFingerprintRegistrationResponse(
+      user,
+      payload,
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: 'Fingerprint registered successfully.',
+      data: result,
+    });
+  },
+);
+
 export const AuthController = {
   verifyEmail,
   loginUser,
   forgetPassword,
   resetPassword,
   changePassword,
+  getFingerprintSetupOptions,
+  verifyFingerprintSetup,
 };

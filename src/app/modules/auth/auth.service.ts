@@ -1,6 +1,11 @@
 import bcrypt from 'bcryptjs';
 import { StatusCodes } from 'http-status-codes';
 import { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  type RegistrationResponseJSON,
+} from '@simplewebauthn/server';
 import config from '../../../config';
 import ApiError from '../../../errors/ApiError';
 import { emailHelper } from '../../../helpers/emailHelper';
@@ -29,7 +34,7 @@ const loginUserFromDB = async (payload: ILoginData) => {
   if (!isExistUser.verified) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Please verify your account, then try to login again'
+      'Please verify your account, then try to login again',
     );
   }
 
@@ -37,7 +42,7 @@ const loginUserFromDB = async (payload: ILoginData) => {
   if (isExistUser.status === 'delete') {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'You don’t have permission to access this content.It looks like your account has been deactivated.'
+      'You don’t have permission to access this content.It looks like your account has been deactivated.',
     );
   }
 
@@ -53,10 +58,18 @@ const loginUserFromDB = async (payload: ILoginData) => {
   const createToken = jwtHelper.createToken(
     { id: isExistUser._id, role: isExistUser.role, email: isExistUser.email },
     config.jwt.jwt_secret as Secret,
-    config.jwt.jwt_expire_in as SignOptions['expiresIn']
+    config.jwt.jwt_expire_in as SignOptions['expiresIn'],
   );
 
-  return { createToken };
+  const user = {
+    _id: isExistUser._id,
+    role: isExistUser.role,
+    email: isExistUser.email,
+    name: isExistUser.name,
+    image: isExistUser.image,
+  };
+
+  return { user, token: createToken };
 };
 
 //forget password
@@ -94,7 +107,7 @@ const verifyEmailToDB = async (payload: IVerifyEmail) => {
   if (!oneTimeCode) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Please give the otp, check your email we send a code'
+      'Please give the otp, check your email we send a code',
     );
   }
 
@@ -106,7 +119,7 @@ const verifyEmailToDB = async (payload: IVerifyEmail) => {
   if (date > isExistUser.authentication?.expireAt) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Otp already expired, Please try again'
+      'Otp already expired, Please try again',
     );
   }
 
@@ -116,7 +129,7 @@ const verifyEmailToDB = async (payload: IVerifyEmail) => {
   if (!isExistUser.verified) {
     await User.findOneAndUpdate(
       { _id: isExistUser._id },
-      { verified: true, authentication: { oneTimeCode: null, expireAt: null } }
+      { verified: true, authentication: { oneTimeCode: null, expireAt: null } },
     );
     message = 'Email verify successfully';
   } else {
@@ -128,7 +141,7 @@ const verifyEmailToDB = async (payload: IVerifyEmail) => {
           oneTimeCode: null,
           expireAt: null,
         },
-      }
+      },
     );
 
     //create token ;
@@ -149,7 +162,7 @@ const verifyEmailToDB = async (payload: IVerifyEmail) => {
 //forget password
 const resetPasswordToDB = async (
   token: string,
-  payload: IAuthResetPassword
+  payload: IAuthResetPassword,
 ) => {
   const { newPassword, confirmPassword } = payload;
   //isExist token
@@ -160,12 +173,12 @@ const resetPasswordToDB = async (
 
   //user permission check
   const isExistUser = await User.findById(isExistToken.user).select(
-    '+authentication'
+    '+authentication',
   );
   if (!isExistUser?.authentication?.isResetPassword) {
     throw new ApiError(
       StatusCodes.UNAUTHORIZED,
-      "You don't have permission to change the password. Please click again to 'Forgot Password'"
+      "You don't have permission to change the password. Please click again to 'Forgot Password'",
     );
   }
 
@@ -174,7 +187,7 @@ const resetPasswordToDB = async (
   if (!isValid) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Token expired, Please click again to the forget password'
+      'Token expired, Please click again to the forget password',
     );
   }
 
@@ -182,13 +195,13 @@ const resetPasswordToDB = async (
   if (newPassword !== confirmPassword) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      "New password and Confirm password doesn't match!"
+      "New password and Confirm password doesn't match!",
     );
   }
 
   const hashPassword = await bcrypt.hash(
     newPassword,
-    Number(config.bcrypt_salt_rounds)
+    Number(config.bcrypt_salt_rounds),
   );
 
   const updateData = {
@@ -205,7 +218,7 @@ const resetPasswordToDB = async (
 
 const changePasswordToDB = async (
   user: JwtPayload,
-  payload: IChangePassword
+  payload: IChangePassword,
 ) => {
   const { currentPassword, newPassword, confirmPassword } = payload;
   const isExistUser = await User.findById(user.id).select('+password');
@@ -225,21 +238,21 @@ const changePasswordToDB = async (
   if (currentPassword === newPassword) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Please give different password from current password'
+      'Please give different password from current password',
     );
   }
   //new password and confirm password check
   if (newPassword !== confirmPassword) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      "Password and Confirm password doesn't matched"
+      "Password and Confirm password doesn't matched",
     );
   }
 
   //hash password
   const hashPassword = await bcrypt.hash(
     newPassword,
-    Number(config.bcrypt_salt_rounds)
+    Number(config.bcrypt_salt_rounds),
   );
 
   const updateData = {
@@ -248,10 +261,92 @@ const changePasswordToDB = async (
   await User.findOneAndUpdate({ _id: user.id }, updateData, { new: true });
 };
 
+const rpName = '4sightRX';
+const rpID = config.ip_address as string;
+const origin = `https://${rpID}`;
+
+const generateFingerprintRegistrationOptions = async (user: JwtPayload) => {
+  const isExistUser = await User.isExistUserById(user.id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  const options = await generateRegistrationOptions({
+    rpName,
+    rpID,
+    userName: isExistUser.email,
+    attestationType: 'none',
+    authenticatorSelection: {
+      residentKey: 'required',
+      userVerification: 'required',
+      authenticatorAttachment: 'platform',
+    },
+    excludeCredentials: isExistUser.webauthnCredential
+      ? [
+          {
+            id: isExistUser.webauthnCredential.credentialId,
+          },
+        ]
+      : [],
+  });
+
+  isExistUser.webauthnChallenge = options.challenge;
+  await isExistUser.save();
+
+  return options;
+};
+
+const verifyFingerprintRegistrationResponse = async (
+  user: JwtPayload,
+  payload: { response: RegistrationResponseJSON },
+) => {
+  const isExistUser = await User.isExistUserById(user.id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  if (!isExistUser.webauthnChallenge) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'No fingerprint registration in progress',
+    );
+  }
+
+  const verification = await verifyRegistrationResponse({
+    response: payload.response,
+    expectedChallenge: isExistUser.webauthnChallenge,
+    expectedOrigin: origin,
+    expectedRPID: rpID,
+  });
+
+  const { verified, registrationInfo } = verification;
+
+  if (!verified || !registrationInfo) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Fingerprint registration could not be verified',
+    );
+  }
+
+  const { credential } = registrationInfo;
+
+  isExistUser.webauthnCredential = {
+    credentialId: credential.id,
+    publicKey: Buffer.from(credential.publicKey).toString('base64url'),
+    counter: credential.counter,
+  };
+  isExistUser.webauthnChallenge = null;
+  await isExistUser.save();
+
+  return { verified: true };
+};
+
 export const AuthService = {
   verifyEmailToDB,
   loginUserFromDB,
   forgetPasswordToDB,
   resetPasswordToDB,
   changePasswordToDB,
+  generateFingerprintRegistrationOptions,
+  verifyFingerprintRegistrationResponse,
 };
