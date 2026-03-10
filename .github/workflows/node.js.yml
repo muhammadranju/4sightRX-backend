@@ -28,4 +28,4 @@ jobs:
         cache: 'bun'
     - run: bun ci
     - run: bun run build --if-present
-    
+    - run: sudo pm2 restart 4sightRX-backend

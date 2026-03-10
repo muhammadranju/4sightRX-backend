@@ -49,7 +49,7 @@ app.get('/', (req: Request, res: Response) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message: 'Beep-beep! The server is alive and kicking.',
+    message: 'Beep-beep! The server is alive and kicking. v2',
     data: date,
   });
 });
