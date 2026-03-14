@@ -1,7 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
 import mongoose from 'mongoose';
 import ApiError from '../../../errors/ApiError';
-import Patient from '../patient/patient.model';
 import { IMedication } from './medication.interface';
 import Medication from './medication.model';
 
@@ -22,17 +21,6 @@ export const bulkCreateMedicationsService = async (
       StatusCodes.BAD_REQUEST,
       'At least one medication is required',
     );
-  }
-
-  // Validate that all patientIds are valid and patient exists
-  const patientIds = [...new Set(medications.map(m => m.patientId.toString()))];
-  for (const id of patientIds) {
-    if (!mongoose.isValidObjectId(id)) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, `Invalid patient ID: ${id}`);
-    }
-    const exists = await Patient.exists({ _id: id });
-    if (!exists)
-      throw new ApiError(StatusCodes.NOT_FOUND, `Patient not found: ${id}`);
   }
 
   const created = await Medication.insertMany(medications);

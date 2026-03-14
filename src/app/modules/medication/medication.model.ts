@@ -7,16 +7,12 @@ import {
 
 const medicationSchema = new Schema<IMedication>(
   {
-    // patientId: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: 'Patient',
-    //   required: [true, 'Patient ID is required'],
-    // },
-    // sessionId: {
-    //   type: String,
-    //   required: [true, 'Session ID is required'],
-    //   index: true,
-    // },
+    patientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Patient',
+      // required: [true, 'Patient ID is required'],
+    },
+
     medicationName: {
       type: String,
       required: [true, 'Medication name is required'],
