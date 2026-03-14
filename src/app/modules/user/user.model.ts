@@ -35,13 +35,23 @@ const userSchema = new Schema<IUser, UserModal>(
     },
     status: {
       type: String,
-      enum: ['active', 'delete'],
+      enum: ['active', 'blocked'],
       default: 'active',
     },
     verified: {
       type: Boolean,
       default: true,
     },
+
+    specialty: {
+      type: String,
+      default: null,
+    },
+    hospitalName: {
+      type: String,
+      default: null,
+    },
+
     authentication: {
       type: {
         isResetPassword: {
@@ -76,6 +86,10 @@ const userSchema = new Schema<IUser, UserModal>(
         },
       },
       select: 0,
+    },
+    isLogin: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true },

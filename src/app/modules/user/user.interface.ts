@@ -9,8 +9,11 @@ export type IUser = {
   password: string;
   location: string;
   image?: string;
-  status: 'active' | 'delete';
+  status: 'active' | 'blocked';
   verified: boolean;
+  specialty: string;
+  hospitalName: string;
+  isLogin: boolean;
   authentication?: {
     isResetPassword: boolean;
     oneTimeCode: number;

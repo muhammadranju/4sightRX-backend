@@ -2,12 +2,10 @@ import { StatusCodes } from 'http-status-codes';
 import { JwtPayload } from 'jsonwebtoken';
 import { USER_ROLES } from '../../../enums/user';
 import ApiError from '../../../errors/ApiError';
-import { emailHelper } from '../../../helpers/emailHelper';
-import { emailTemplate } from '../../../shared/emailTemplate';
 import unlinkFile from '../../../shared/unlinkFile';
-import generateOTP from '../../../util/generateOTP';
 import { IUser } from './user.interface';
 import { User } from './user.model';
+import Medication from '../medication/medication.model';
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
   //set role
@@ -42,14 +40,15 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
 
 const getUserProfileFromDB = async (
   user: JwtPayload,
-): Promise<Partial<IUser>> => {
+): Promise<Partial<IUser> & { medicationCount: number }> => {
   const { id } = user;
   const isExistUser = await User.isExistUserById(id);
+  const findMedication = await Medication.find({ user: id }).countDocuments();
   if (!isExistUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
-  return isExistUser;
+  return { ...isExistUser.toObject(), medicationCount: findMedication };
 };
 
 const updateProfileToDB = async (
