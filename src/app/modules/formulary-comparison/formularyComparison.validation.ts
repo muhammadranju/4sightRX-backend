@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 export const analyzeSchema = z.object({
   body: z.object({
+    patientId: z.string().min(1, 'Patient ID is required'),
     medicationIds: z
       .array(z.string().min(1, 'Each medication ID must be a non-empty string'))
       .min(1, 'At least one medication ID is required'),

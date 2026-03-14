@@ -13,8 +13,9 @@ import {
 import { actionSchema, analyzeSchema } from './formularyComparison.validation';
 
 const analyzeFormulary = catchAsync(async (req: Request, res: Response) => {
+  const patientId = req.body.patientId as string;
   // Zod validation
-  const parsed = analyzeSchema.safeParse({ body: req.body });
+  const parsed = analyzeSchema.safeParse({ body: req.body, patientId });
   if (!parsed.success) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
@@ -24,7 +25,10 @@ const analyzeFormulary = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  const recommendations = await analyzeFormularyService(parsed.data.body);
+  const recommendations = await analyzeFormularyService(
+    parsed.data.body,
+    patientId,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -59,7 +63,8 @@ const updateAction = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getSummary = catchAsync(async (req: Request, res: Response) => {
-  const summary = await getSummaryService();
+  const patientId = req.query.patientId as string;
+  const summary = await getSummaryService(patientId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -73,13 +78,22 @@ const getSummary = catchAsync(async (req: Request, res: Response) => {
 
 const getFormularyInterchange = catchAsync(
   async (req: Request, res: Response) => {
-    const summary = await getFormularyInterchangeService();
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const search = req.query.search as string;
+    const summary = await getFormularyInterchangeService(page, limit, search);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Reconciliation summary fetched',
-      data: summary,
+      pagination: {
+        page: summary.page,
+        limit: summary.limit,
+        totalPage: Math.ceil(summary.total / summary.limit),
+        total: summary.total,
+      },
+      data: summary.data,
     });
   },
 );

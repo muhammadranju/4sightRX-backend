@@ -26,6 +26,7 @@ export const calculateTotalSavings = (docs: IFormularyComparison[]): number => {
 
 export const analyzeFormularyService = async (
   input: AnalyzeInput,
+  patientId: string,
 ): Promise<IFormularyComparison[]> => {
   const { medicationIds } = input;
 
@@ -63,7 +64,7 @@ export const analyzeFormularyService = async (
       // 5. Persist recommendation using new+save for correct Mongoose v9 typing
       const doc = new FormularyComparison({
         medicationId: medication._id,
-
+        patientId,
         currentMedication: medication.medicationName,
         recommendedMedication: aiResponse.recommendedMedication,
         rationale: aiResponse.rationale,
@@ -106,46 +107,71 @@ export const updateActionService = async (
   return updated as unknown as IFormularyComparison;
 };
 
-export const getSummaryService =
-  async (): Promise<IFormularyComparisonSummary> => {
-    const all = await FormularyComparison.find()
-      .populate('medicationId', 'medicationName strength dose frequency')
-      .lean()
-      .sort({ createdAt: -1 });
+export const getSummaryService = async (
+  patientId: string,
+): Promise<IFormularyComparisonSummary> => {
+  if (!mongoose.isValidObjectId(patientId)) {
+    throw new Error(`Invalid patient ID: ${patientId}`);
+  }
 
-    const docs = all as unknown as IFormularyComparison[];
+  const all = await FormularyComparison.find({ patientId })
+    .populate('medicationId', 'medicationName strength dose frequency')
+    .sort({ createdAt: -1 })
+    .lean();
 
-    // 1. Changed: Accepted recommendations
-    const changedMedications = docs.filter(d => d.action === 'accepted');
+  const docs = all as unknown as IFormularyComparison[];
 
-    // 2. Discontinued: Explicitly discontinued or declined (per user flow Step 5)
-    // Note: user requested "Medications marked as Declined or Discontinued" go here
-    const discontinuedMedications = docs.filter(
-      d => d.action === 'discontinued' || d.action === 'declined',
-    );
+  // 1. Changed: Accepted recommendations
+  const changedMedications = docs.filter(d => d.action === 'accepted');
 
-    // 3. Continued: Medications with "no change" (pending or where recommended === current)
-    // We'll treat 'pending' as continued for the final summary if not otherwise acted upon
-    const continuedMedications = docs.filter(
-      d => d.action === 'pending' && !changedMedications.includes(d),
-    );
+  // 2. Discontinued: Explicitly discontinued or declined
+  const discontinuedMedications = docs.filter(
+    d => d.action === 'discontinued' || d.action === 'declined',
+  );
 
-    return {
-      changedMedications,
-      continuedMedications,
-      discontinuedMedications,
-      totalEstimatedMonthlySavings: calculateTotalSavings(docs),
-    };
+  // 3. Continued: Only truly pending — not accepted, not discontinued/declined
+  const continuedMedications = docs.filter(
+    d =>
+      d.action === 'pending' &&
+      !changedMedications.includes(d) &&
+      !discontinuedMedications.includes(d),
+  );
+
+  return {
+    changedMedications,
+    continuedMedications,
+    discontinuedMedications,
+    totalEstimatedMonthlySavings: calculateTotalSavings(docs),
   };
+};
 
-export const getFormularyInterchangeService = async (): Promise<
-  IFormularyInterchange[]
-> => {
-  const all = await FormularyInterchange.find().lean().sort({ createdAt: -1 });
+export const getFormularyInterchangeService = async (
+  page: number,
+  limit: number,
+  search: string,
+) => {
+  const query: any = {};
+  if (search) {
+    query.medicationName = { $regex: search, $options: 'i' };
+  }
 
-  const docs = all as unknown as IFormularyInterchange[];
+  const skip = (page - 1) * limit;
+  const [data, total] = await Promise.all([
+    FormularyInterchange.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .sort({ createdAt: -1 }),
+    FormularyInterchange.countDocuments(query),
+  ]);
 
-  return docs;
+  return {
+    data: data as unknown as IFormularyInterchange[],
+    total,
+    page,
+    limit,
+  };
 };
 
 export const createFormularyInterchangeService = async (

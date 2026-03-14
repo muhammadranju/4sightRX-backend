@@ -3,6 +3,12 @@ import { IFormularyComparison } from './formularyComparison.interface';
 
 const formularyComparisonSchema = new Schema<IFormularyComparison>(
   {
+    patientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Patient',
+      required: [true, 'Patient ID is required'],
+    },
+
     medicationId: {
       type: Schema.Types.ObjectId,
       ref: 'Medication',

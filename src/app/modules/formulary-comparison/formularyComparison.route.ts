@@ -1,5 +1,7 @@
 import express from 'express';
 import { FormularyComparisonController } from './formularyComparison.controller';
+import auth from '../../middlewares/auth';
+import { USER_ROLES } from '../../../enums/user';
 
 const router = express.Router();
 
@@ -7,32 +9,53 @@ const router = express.Router();
  * POST /formulary-comparison/analyze
  * Trigger AI-based formulary comparison for a batch of medications.
  */
-router.post('/analyze', FormularyComparisonController.analyzeFormulary);
+router.post(
+  '/analyze',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  FormularyComparisonController.analyzeFormulary,
+);
 
 /**
  * GET /formulary-comparison/summary
  * Fetch the final reconciliation summary grouped by action.
  */
-router.get('/summary', FormularyComparisonController.getSummary);
+router.get(
+  '/summary',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  FormularyComparisonController.getSummary,
+);
 
 /**
  * PATCH /formulary-comparison/:id/action
  * Clinician accepts, declines, or discontinues a recommendation.
  */
-router.patch('/:id/action', FormularyComparisonController.updateAction);
+router.patch(
+  '/:id/action',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  FormularyComparisonController.updateAction,
+);
 
 // formulary interchange
 router
   .route('/therapeutic-interchange')
-  .get(FormularyComparisonController.getFormularyInterchange);
+  .get(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    FormularyComparisonController.getFormularyInterchange,
+  );
 
 router
   .route('/therapeutic-interchange')
-  .post(FormularyComparisonController.createFormularyInterchange);
+  .post(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    FormularyComparisonController.createFormularyInterchange,
+  );
 
 router
   .route('/therapeutic-interchange/:id')
-  .patch(FormularyComparisonController.updateFormularyInterchange);
+  .patch(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    FormularyComparisonController.updateFormularyInterchange,
+  );
 
 const formularyComparisonRoutes = router;
 

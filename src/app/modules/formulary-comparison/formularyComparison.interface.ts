@@ -7,6 +7,7 @@ export type FormularyAction =
   | 'discontinued';
 
 export interface IFormularyComparison {
+  patientId: Types.ObjectId;
   medicationId: Types.ObjectId;
 
   // Session UUID — groups all comparisons from one reconciliation session
