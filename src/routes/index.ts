@@ -6,6 +6,7 @@ import medicationRoutes from '../app/modules/medication/medication.route';
 import therapeuticRoutes from '../app/modules/therapeutic/therapeutic.route';
 import formularyComparisonRoutes from '../app/modules/formulary-comparison/formularyComparison.route';
 import analyticsRoutes from '../app/modules/analytics/analytics.route';
+import activityLogger from '../app/middlewares/activityLogger';
 const router = express.Router();
 
 const apiRoutes = [
@@ -17,6 +18,8 @@ const apiRoutes = [
   { path: '/formulary-comparison', route: formularyComparisonRoutes },
   { path: '/analytics', route: analyticsRoutes },
 ];
+
+router.use(activityLogger());
 
 apiRoutes.forEach(route => router.use(route.path, route.route));
 
