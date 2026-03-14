@@ -3,3 +3,9 @@ export enum USER_ROLES {
   ADMIN = 'ADMIN',
   USER = 'USER',
 }
+
+export enum PartialStatus {
+  ACTIVE = 'ACTIVE',
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+}
