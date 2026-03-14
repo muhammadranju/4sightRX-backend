@@ -10,16 +10,16 @@ import { extractMedicationsFromImage } from '../formulary-comparison/gemini.serv
  * Handles prescription image upload and uses Gemini AI to extract medication details.
  */
 const extractMedications = catchAsync(async (req: Request, res: Response) => {
-  if (
-    !req.files ||
-    !('image' in req.files) ||
-    (req.files as any).image.length === 0
-  ) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'Prescription image is required',
-    );
-  }
+  // if (
+  //   !req.files ||
+  //   !('image' in req.files) ||
+  //   (req.files as any).image.length === 0
+  // ) {
+  //   throw new ApiError(
+  //     httpStatus.BAD_REQUEST,
+  //     'Prescription image is required',
+  //   );
+  // }
 
   const file = (req.files as any).image[0];
   const imageBuffer = fs.readFileSync(file.path);
