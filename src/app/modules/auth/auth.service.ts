@@ -39,7 +39,7 @@ const loginUserFromDB = async (payload: ILoginData) => {
   }
 
   //check user status
-  if (isExistUser.status === 'delete') {
+  if (isExistUser.status === 'blocked') {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'You don’t have permission to access this content.It looks like your account has been deactivated.',
@@ -68,6 +68,8 @@ const loginUserFromDB = async (payload: ILoginData) => {
     name: isExistUser.name,
     image: isExistUser.image,
   };
+
+  await User.findOneAndUpdate({ _id: isExistUser._id }, { isLogin: true });
 
   return { user, token: createToken };
 };
@@ -234,11 +236,15 @@ const changePasswordToDB = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is incorrect');
   }
 
-  //newPassword and current password
-  if (currentPassword === newPassword) {
+  //newPassword must be different from the currently stored password
+  const isSameAsCurrentPassword = await bcrypt.compare(
+    newPassword,
+    isExistUser.password,
+  );
+  if (isSameAsCurrentPassword) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Please give different password from current password',
+      'New password must be different from your current password. Please choose a different password.',
     );
   }
   //new password and confirm password check
