@@ -2,6 +2,8 @@ import FormularyComparison from '../formulary-comparison/formularyComparison.mod
 import FormularyInterchange from '../formulary-comparison/formularyInterchange.model';
 import Patient from '../patient/patient.model';
 import { User } from '../user/user.model';
+import { Activity } from '../activity/activity.model';
+import getRelativeTime from '../../../util/relativeTime';
 
 const getAppAnalyticsFromDB = async () => {
   const totalActivePatients = await Patient.countDocuments();
@@ -180,11 +182,18 @@ const getRecommendationAcceptanceRateFromDB = async () => {
 };
 
 const getRecentActivitiesFromDB = async () => {
-  const result = await User.find({ role: 'USER' })
-    .sort({ createdAt: -1 })
-    .limit(10);
+  const result = await Activity.find().sort({ createdAt: -1 }).limit(10);
 
-  return result;
+  // Format timestamps to human-readable relative time
+  const formattedResult = result.map(activity => {
+    const activityObj = activity.toObject();
+    return {
+      ...activityObj,
+      timeAgo: getRelativeTime(new Date(activityObj.createdAt)),
+    };
+  });
+
+  return formattedResult;
 };
 
 export const AnalyticsService = {
