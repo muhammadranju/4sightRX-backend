@@ -5,6 +5,7 @@ import patientRoutes from '../app/modules/patient/patient.route';
 import medicationRoutes from '../app/modules/medication/medication.route';
 import therapeuticRoutes from '../app/modules/therapeutic/therapeutic.route';
 import formularyComparisonRoutes from '../app/modules/formulary-comparison/formularyComparison.route';
+import analyticsRoutes from '../app/modules/analytics/analytics.route';
 const router = express.Router();
 
 const apiRoutes = [
@@ -14,6 +15,7 @@ const apiRoutes = [
   { path: '/medications', route: medicationRoutes },
   { path: '/therapeutics', route: therapeuticRoutes },
   { path: '/formulary-comparison', route: formularyComparisonRoutes },
+  { path: '/analytics', route: analyticsRoutes },
 ];
 
 apiRoutes.forEach(route => router.use(route.path, route.route));
