@@ -1,8 +1,10 @@
 import { StatusCodes } from 'http-status-codes';
+import random from 'random-string-generator';
 import ApiError from '../../../errors/ApiError';
-import Patient from './patient.model';
-import { INewPatient } from './patient.interface';
 import { getAgeInYears } from '../../../helpers/getAgeInYears';
+import { INewPatient } from './patient.interface';
+import Patient from './patient.model';
+import Medication from '../medication/medication.model';
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
@@ -12,24 +14,15 @@ export const createPatientService = async (
   const { dateOfBirth } = payload;
   const age = getAgeInYears(dateOfBirth);
   payload.age = age;
+  payload.patientIdMrn = `MRN-${random(5, 'numeric')}`;
   const patient = new Patient(payload);
   return patient.save() as unknown as INewPatient;
 };
 
 // ─── Get All (with optional facility filter + pagination) ────────────────────
 
-export const getAllPatientsService = async (
-  facilityId?: string,
-  page = 1,
-  limit = 10,
-): Promise<{
-  data: INewPatient[];
-  total: number;
-  page: number;
-  limit: number;
-}> => {
+export const getAllPatientsService = async (page = 1, limit = 10) => {
   const filter: Record<string, unknown> = {};
-  if (facilityId) filter.facility = facilityId;
 
   const skip = (page - 1) * limit;
   const [data, total] = await Promise.all([
@@ -41,12 +34,13 @@ export const getAllPatientsService = async (
 
 // ─── Get Single ───────────────────────────────────────────────────────────────
 
-export const getPatientByIdService = async (
-  id: string,
-): Promise<INewPatient> => {
+export const getPatientByIdService = async (id: string) => {
   const patient = await Patient.findById(id).lean();
   if (!patient) throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found');
-  return patient as unknown as INewPatient;
+  const findMedication = await Medication.find({
+    patientId: id,
+  }).countDocuments();
+  return { ...patient, medicationCount: findMedication };
 };
 
 // ─── Update ───────────────────────────────────────────────────────────────────
@@ -56,8 +50,9 @@ export const updatePatientService = async (
   payload: Partial<INewPatient>,
 ): Promise<INewPatient> => {
   const { dateOfBirth } = payload;
-  const age = getAgeInYears(dateOfBirth as string);
-  payload.age = age;
+  if (dateOfBirth) {
+    payload.age = getAgeInYears(dateOfBirth as string);
+  }
   const patient = await Patient.findByIdAndUpdate(
     id,
     { $set: payload },

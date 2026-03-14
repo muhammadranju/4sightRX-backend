@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { Gender, INewPatient } from './patient.interface';
+import { PartialStatus } from '../../../enums/user';
 
 const patientSchema = new Schema<INewPatient>(
   {
@@ -42,6 +43,11 @@ const patientSchema = new Schema<INewPatient>(
     admissionDate: {
       type: String,
       required: [true, 'Admission date is required'],
+    },
+    status: {
+      type: String,
+      enum: Object.values(PartialStatus),
+      default: PartialStatus.PENDING,
     },
     notes: { type: String },
   },

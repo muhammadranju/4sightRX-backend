@@ -21,10 +21,9 @@ const createPatient = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllPatients = catchAsync(async (req: Request, res: Response) => {
-  const facilityId = req.query.facilityId as string | undefined;
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
-  const result = await getAllPatientsService(facilityId, page, limit);
+  const result = await getAllPatientsService(page, limit);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
