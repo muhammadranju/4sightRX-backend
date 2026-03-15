@@ -17,7 +17,7 @@ const getAllActivities = async () => {
     const activityObj = activity.toObject();
     return {
       ...activityObj,
-      timeAgo: getRelativeTime(new Date(activityObj.timestamp)),
+      timeAgo: getRelativeTime(new Date(activityObj.createdAt)),
     };
   });
 
