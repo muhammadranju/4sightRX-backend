@@ -1,114 +1,274 @@
-# Project Name
+# 4sightRX Backend
 
-This is a template project for backend development using Typescript, Node.js, Express, Mongoose, Bcrypt, JWT, NodeMailer, Multer, ESLint, and Prettier. The aim is to reduce setup time for new backend projects.
+Backend service for the **4sightRX** application. This project provides RESTful APIs for handling application logic, database interactions, authentication, and other server-side functionality required by the 4sightRX platform.
 
-## Features
+The backend is designed to be **scalable, modular, and maintainable**, making it easy to extend features and integrate with frontend or third-party services.
 
-- **Authentication API:** Complete authentication system using JWT for secure token-based authentication and bcrypt for password hashing.
-- **File Upload:** Implemented using Multer with efficient file handling and short-term storage.
-- **Data Validation:** Robust data validation using Zod and Mongoose schemas.
-- **Code Quality:** Ensured code readability and quality with ESLint and Prettier.
-- **Email Service:** Sending emails through NodeMailer.
-- **File Handling:** Efficient file deletion using `fs.unlink`.
-- **Environment Configuration:** Easy configuration using a `.env` file.
-- **Logging:** Logging with Winston and file rotation using DailyRotateFile.
-- **API Request Logging:** Logging API requests using Morgan.
+# Postman Collection
 
-## Tech Stack
+[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/47395534-31ca7964-2568-41e9-9e58-9e048c2a79ff?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D47395534-31ca7964-2568-41e9-9e58-9e048c2a79ff%26entityType%3Dcollection%26workspaceId%3D9c924817-63fd-4b1e-825b-ce4722976283)
 
-- Typescript
-- Node.js
-- Express
-- Mongoose
-- Bcrypt
-- JWT
-- NodeMailer
-- Multer
-- ESLint
-- Prettier
-- Winston
-- Daily-winston-rotate-file
-- Morgen
-- Socket
+---
 
-## Getting Started
+# Table of Contents
 
-Follow these steps to set up and run the project locally.
+- Introduction
+- Features
+- Tech Stack
+- Project Structure
+- Installation
+- Environment Variables
+- Usage
+- API Endpoints
+- Dependencies
+- Configuration
+- Development
+- Troubleshooting
+- Contributing
+- License
 
-### Prerequisites
+---
 
-Ensure you have the following installed:
+# Introduction
 
-- Node.js
-- npm or yarn
+The **4sightRX Backend** is responsible for powering the server-side functionality of the 4sightRX system. It exposes APIs that allow clients (such as web or mobile applications) to interact with the application database, perform CRUD operations, manage authentication, and process business logic.
 
-### Installation
+This repository serves as the **core backend API layer** of the system.
 
-1. **Clone the repository:**
+---
 
-   ```bash
-   git clone https://github.com/yourusername/your-repository.git
-   cd your-repository
-   ```
+# Features
 
-2. **Install dependencies:**
+- RESTful API architecture
+- Secure authentication & authorization
+- Modular backend structure
+- Database integration
+- Environment-based configuration
+- Scalable and maintainable codebase
+- Error handling and validation
+- Middleware support
+- Logging and debugging support
 
-   Using npm:
+---
 
-   ```bash
-   npm install
-   ```
+# Tech Stack
 
-   Using yarn:
+Typical stack used in this backend:
 
-   ```bash
-   yarn install
-   ```
+- **Node.js** – Runtime environment
+- **Express.js** – Backend framework
+- **MongoDB / SQL** – Database (depending on configuration)
+- **JWT** – Authentication
+- **dotenv** – Environment management
+- **Mongoose / ORM** – Database modeling
 
-3. **Create a `.env` file:**
+---
 
-   In the root directory of the project, create a `.env` file and add the following variables. Adjust the values according to your setup.
+# Project Structure
 
-   ```env
-   # Basic
-   NODE_ENV=development
-   DATABASE_URL=mongodb://127.0.0.1:27017/project_name
-   IP_ADDRESS=10.10.7.101
-   PORT=5000
-   #Bcrypt
-   BCRYPT_SALT_ROUNDS=12
-   #JWT
-   JWT_SECRET=jwt_secret
-   #Email
-   EMAIL_FROM=email@gmail.com
-   EMAIL_USER=email@gmail.com
-   EMAIL_PASS=mkqcfjeqloothyax
-   EMAIL_PORT=587
-   EMAIL_HOST=smtp.gmail.com
-   SUPER_ADMIN_EMAIL=admin@gmail.com
-   SUPER_ADMIN_PASSWORD=12345678
-   ```
+Example structure of the repository:
 
-4. **Run the project:**
-
-   Using npm:
-
-   ```bash
-   npm run dev
-   ```
-
-   Using yarn:
-
-   ```bash
-   yarn run dev
-   ```
-
-### Running the Tests
-
-Explain how to run the automated tests for this system.
-
-```bash
-npm test
+```
+4sightRX-backend
+│
+├── controllers      # Business logic
+├── routes           # API route definitions
+├── models           # Database schemas / models
+├── middleware       # Authentication & request middleware
+├── config           # Configuration files
+├── utils            # Helper functions
+├── app.js           # Express app setup
+├── server.js        # Application entry point
+├── package.json
+└── README.md
 ```
 
-# TS-Template
+---
+
+# Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/muhammadranju/4sightRX-backend.git
+```
+
+Navigate into the project folder:
+
+```bash
+cd 4sightRX-backend
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+---
+
+# Environment Variables
+
+Create a `.env` file in the root directory.
+
+Example configuration:
+
+```
+PORT=5000
+DATABASE_URL=your_database_connection_string
+JWT_SECRET=your_secret_key
+NODE_ENV=development
+```
+
+Make sure you **never commit your `.env` file** to the repository.
+
+---
+
+# Usage
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Or run the production server:
+
+```bash
+npm start
+```
+
+The backend server will run on:
+
+```
+http://localhost:5000
+```
+
+---
+
+# API Endpoints
+
+Example API routes:
+
+| Method | Endpoint           | Description       |
+| ------ | ------------------ | ----------------- |
+| GET    | /api               | API status        |
+| POST   | /api/auth/login    | User login        |
+| POST   | /api/auth/register | User registration |
+| GET    | /api/users         | Get all users     |
+| POST   | /api/resource      | Create resource   |
+| PUT    | /api/resource/:id  | Update resource   |
+| DELETE | /api/resource/:id  | Delete resource   |
+
+---
+
+# Dependencies
+
+Common dependencies used in this project:
+
+- express
+- mongoose / prisma / sequelize
+- jsonwebtoken
+- bcrypt
+- dotenv
+- cors
+- nodemon
+
+Install all dependencies using:
+
+```bash
+npm install
+```
+
+---
+
+# Configuration
+
+Configuration files are stored inside the **config** directory.
+
+You can configure:
+
+- Database connection
+- Server port
+- Environment variables
+- Authentication settings
+
+---
+
+# Development
+
+Recommended development workflow:
+
+1. Fork the repository
+2. Create a new branch
+
+```
+git checkout -b feature-name
+```
+
+3. Make your changes
+4. Commit changes
+
+```
+git commit -m "Add new feature"
+```
+
+5. Push the branch and create a Pull Request.
+
+---
+
+# Troubleshooting
+
+Common issues and solutions:
+
+### Dependencies not installing
+
+```
+npm cache clean --force
+npm install
+```
+
+### Port already in use
+
+Change the port inside `.env`:
+
+```
+PORT=5001
+```
+
+### Database connection error
+
+Check:
+
+- Database URL
+- Internet connection
+- Database server status
+
+---
+
+# Contributing
+
+Contributions are welcome!
+
+If you want to improve the project:
+
+- Fork the repository
+- Create a new branch
+- Submit a pull request
+
+Please ensure your code follows best practices and includes clear commit messages.
+
+---
+
+# License
+
+This project is licensed under the **MIT License**.
+
+---
+
+✅ If you want, I can also:
+
+- Rewrite this **README to be more professional (GitHub trending style)**
+- Add **API documentation + Swagger section**
+- Add **badges, screenshots, and deployment instructions**
+- Optimize it so the repo **looks attractive to recruiters**.
