@@ -25,7 +25,6 @@ const activityLogger = () => {
                     name: userData.name,
                     specialization: userData.specialty || 'N/A',
                     action: actionDescription,
-                    timestamp: new Date(),
                   });
                 }
               }
