@@ -27,6 +27,7 @@ module.exports = [
       'no-unreachable': 'error',
       'no-empty': 'error',
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+      '@typescript-eslint/consistent-type-definitions': 'error',
     },
   },
 ];
