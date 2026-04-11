@@ -73,8 +73,31 @@ const updateProfileToDB = async (
   return updateDoc;
 };
 
+const getAllUsersFromDB = async (
+  page = 1,
+  limit = 10,
+  searchTerm?: string,
+) => {
+  const filter: any = {};
+
+  if (searchTerm) {
+    const searchableFields = ['name', 'email', 'role', 'hospitalName', 'specialty'];
+    filter.$or = searchableFields.map(field => ({
+      [field]: { $regex: searchTerm, $options: 'i' },
+    }));
+  }
+
+  const skip = (page - 1) * limit;
+  const [data, total] = await Promise.all([
+    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    User.countDocuments(filter),
+  ]);
+  return { data, total, page, limit };
+};
+
 export const UserService = {
   createUserToDB,
   getUserProfileFromDB,
   updateProfileToDB,
+  getAllUsersFromDB,
 };

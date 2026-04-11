@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { PartialStatus } from '../../../enums/user';
 
 export enum Gender {

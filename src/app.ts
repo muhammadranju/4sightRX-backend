@@ -17,7 +17,17 @@ app.use(Morgan.successHandler);
 app.use(Morgan.errorHandler);
 
 //body parser
-app.use(cors({ origin: '*' }));
+app.use(
+  cors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -27,7 +37,7 @@ app.use(express.static('uploads'));
 // ── Swagger UI (/api-docs) ───────────────────────────────────────────────────
 // Server needs restart to pick up swagger.yaml changes
 const swaggerDocument = yaml.load(
-  fs.readFileSync(path.join(__dirname, '..', 'swagger.yaml'), 'utf8'),
+  fs.readFileSync(path.join(process.cwd(), 'swagger.yaml'), 'utf8'),
 ) as Record<string, unknown>;
 
 app.use(

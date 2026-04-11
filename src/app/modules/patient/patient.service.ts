@@ -21,8 +21,24 @@ export const createPatientService = async (
 
 // ─── Get All (with optional facility filter + pagination) ────────────────────
 
-export const getAllPatientsService = async (page = 1, limit = 10) => {
-  const filter: Record<string, unknown> = {};
+export const getAllPatientsService = async (
+  page = 1,
+  limit = 10,
+  searchTerm?: string,
+) => {
+  const filter: any = {};
+
+  if (searchTerm) {
+    const searchableFields = [
+      'firstName',
+      'lastName',
+      'patientIdMrn',
+      'phoneNumber',
+    ];
+    filter.$or = searchableFields.map(field => ({
+      [field]: { $regex: searchTerm, $options: 'i' },
+    }));
+  }
 
   const skip = (page - 1) * limit;
   const [data, total] = await Promise.all([
