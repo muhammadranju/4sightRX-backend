@@ -16,15 +16,30 @@ const createFacility = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllFacilities = catchAsync(async (req: Request, res: Response) => {
-  const result = await FacilityService.getAllFacilitiesFromDB();
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const searchTerm = req.query.search as string;
+
+  const result = await FacilityService.getAllFacilitiesFromDB(
+    page,
+    limit,
+    searchTerm,
+  );
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: 'Facilities fetched successfully.',
-    data: result,
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      totalPage: Math.ceil(result.total / result.limit),
+      total: result.total,
+    },
+    data: result.data,
   });
 });
+
 
 const updateFacility = catchAsync(async (req: Request, res: Response) => {
   const result = await FacilityService.updateFacilityToDB(

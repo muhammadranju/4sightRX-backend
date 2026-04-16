@@ -6,11 +6,31 @@ const createFacilityToDB = async (payload: IFacility) => {
   return result;
 };
 
-const getAllFacilitiesFromDB = async () => {
-  const result = await Facility.find()
-    .populate('assignAdmin')
-    .sort({ createdAt: -1 });
-  return result;
+const getAllFacilitiesFromDB = async (
+  page = 1,
+  limit = 10,
+  search?: string,
+) => {
+  const filter: any = {};
+
+  if (search) {
+    const searchableFields = ['facilityName', 'location', 'address'];
+    filter.$or = searchableFields.map(field => ({
+      [field]: { $regex: search, $options: 'i' },
+    }));
+  }
+
+  const skip = (page - 1) * limit;
+  const [data, total] = await Promise.all([
+    Facility.find(filter)
+      .populate('assignAdmin')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Facility.countDocuments(filter),
+  ]);
+  return { data, total, page, limit };
 };
 
 const updateFacilityToDB = async (id: string, payload: IFacility) => {

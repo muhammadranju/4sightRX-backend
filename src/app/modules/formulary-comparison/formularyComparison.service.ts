@@ -116,6 +116,7 @@ export const getSummaryService = async (
 
   const all = await FormularyComparison.find({ patientId })
     .populate('medicationId', 'medicationName strength dose frequency')
+    .populate('patientId')
     .sort({ createdAt: -1 })
     .lean();
 

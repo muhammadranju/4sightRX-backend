@@ -6,7 +6,9 @@ import { Activity } from '../activity/activity.model';
 import getRelativeTime from '../../../util/relativeTime';
 
 const getAppAnalyticsFromDB = async () => {
-  const totalActivePatients = await Patient.countDocuments();
+  const totalActivePatients = await Patient.countDocuments({
+    status: 'ACTIVE',
+  });
   const totalCompletes = await FormularyComparison.countDocuments({
     action: 'accepted',
   });
@@ -48,7 +50,9 @@ const getAppAnalyticsFromDB = async () => {
 
 const getDashboardAnalyticsFromDB = async () => {
   const totalUsers = await User.countDocuments();
-
+  const totalActivePatients = await Patient.countDocuments({
+    status: 'ACTIVE',
+  });
   const totalCostSavingsResult = await FormularyComparison.aggregate([
     {
       $match: {
@@ -73,6 +77,7 @@ const getDashboardAnalyticsFromDB = async () => {
   return {
     totalUsers,
     totalCostSavings,
+    totalActivePatients,
     totalInterchangeMode,
   };
 };
