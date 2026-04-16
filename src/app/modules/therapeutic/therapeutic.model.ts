@@ -20,6 +20,17 @@ const therapeuticSchema = new Schema<ITherapeutic>(
       required: [true, 'Drug class is required'],
       trim: true,
     },
+    dosageEquivalence: {
+      type: String,
+      required: [true, 'Dosage equivalence is required'],
+      trim: true,
+    },
+
+    rationale: {
+      type: String,
+      required: [true, 'Rationale is required'],
+      trim: true,
+    },
     estimatedSavings: {
       type: Number,
       min: 0,

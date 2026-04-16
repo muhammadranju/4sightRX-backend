@@ -15,26 +15,6 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user');
   }
 
-  // //send email
-  // const otp = generateOTP();
-  // const values = {
-  //   name: createUser.name,
-  //   otp: otp,
-  //   email: createUser.email!,
-  // };
-  // const createAccountTemplate = emailTemplate.createAccount(values);
-  // emailHelper.sendEmail(createAccountTemplate);
-
-  // //save to DB
-  // const authentication = {
-  //   oneTimeCode: otp,
-  //   expireAt: new Date(Date.now() + 3 * 60000),
-  // };
-  // await User.findOneAndUpdate(
-  //   { _id: createUser._id },
-  //   { $set: { authentication } }
-  // );
-
   return createUser;
 };
 
@@ -73,15 +53,17 @@ const updateProfileToDB = async (
   return updateDoc;
 };
 
-const getAllUsersFromDB = async (
-  page = 1,
-  limit = 10,
-  searchTerm?: string,
-) => {
+const getAllUsersFromDB = async (page = 1, limit = 10, searchTerm?: string) => {
   const filter: any = {};
 
   if (searchTerm) {
-    const searchableFields = ['name', 'email', 'role', 'hospitalName', 'specialty'];
+    const searchableFields = [
+      'name',
+      'email',
+      'role',
+      'hospitalName',
+      'specialty',
+    ];
     filter.$or = searchableFields.map(field => ({
       [field]: { $regex: searchTerm, $options: 'i' },
     }));
@@ -95,9 +77,27 @@ const getAllUsersFromDB = async (
   return { data, total, page, limit };
 };
 
+const updateStatusToDB = async (id: string, status: string) => {
+  const isExistUser = await User.isExistUserById(id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  const updateDoc = await User.findOneAndUpdate(
+    { _id: id },
+    { status },
+    {
+      new: true,
+    },
+  );
+
+  return updateDoc;
+};
+
 export const UserService = {
   createUserToDB,
   getUserProfileFromDB,
   updateProfileToDB,
   getAllUsersFromDB,
+  updateStatusToDB,
 };

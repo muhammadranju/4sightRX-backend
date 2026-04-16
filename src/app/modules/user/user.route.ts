@@ -39,4 +39,10 @@ router
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
     UserController.getAllUsers,
   );
+router
+  .route('/status/:id')
+  .patch(
+    auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+    UserController.updateStatus,
+  );
 export const UserRoutes = router;
