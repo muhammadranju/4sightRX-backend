@@ -11,7 +11,7 @@ const router = express.Router();
  */
 router.post(
   '/analyze',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
   FormularyComparisonController.analyzeFormulary,
 );
 
@@ -21,7 +21,7 @@ router.post(
  */
 router.get(
   '/summary',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
   FormularyComparisonController.getSummary,
 );
 
@@ -31,7 +31,7 @@ router.get(
  */
 router.patch(
   '/:id/action',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
   FormularyComparisonController.updateAction,
 );
 
@@ -39,21 +39,21 @@ router.patch(
 router
   .route('/therapeutic-interchange')
   .get(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
     FormularyComparisonController.getFormularyInterchange,
   );
 
 router
   .route('/therapeutic-interchange')
   .post(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
     FormularyComparisonController.createFormularyInterchange,
   );
 
 router
   .route('/therapeutic-interchange/:id')
   .patch(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
     FormularyComparisonController.updateFormularyInterchange,
   );
 

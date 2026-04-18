@@ -1,9 +1,5 @@
 import { Schema, model } from 'mongoose';
-import {
-  IMedication,
-  MedicationRoute,
-  MedicationFrequency,
-} from './medication.interface';
+import { IMedication } from './medication.interface';
 
 const medicationSchema = new Schema<IMedication>(
   {
@@ -20,32 +16,32 @@ const medicationSchema = new Schema<IMedication>(
     },
     strength: {
       type: String,
-      required: [true, 'Strength is required'],
+      // required: [true, 'Strength is required'],
       trim: true,
     },
     form: {
       type: String,
-      required: [true, 'Form is required'],
+      // required: [true, 'Form is required'],
       trim: true,
     },
     dose: {
       type: String,
-      required: [true, 'Dose is required'],
+      // required: [true, 'Dose is required'],
     },
     route: {
       type: String,
-      enum: Object.values(MedicationRoute),
-      required: [true, 'Route is required'],
+      // enum: Object.values(MedicationRoute),
+      // required: [true, 'Route is required'],
     },
     frequency: {
       type: String,
-      enum: Object.values(MedicationFrequency),
-      required: [true, 'Frequency is required'],
+      // enum: Object.values(MedicationFrequency),
+      // required: [true, 'Frequency is required'],
     },
     source: {
       type: String,
       enum: ['manual', 'ocr'],
-      required: [true, 'Source is required'],
+      // required: [true, 'Source is required'],
       default: 'manual',
     },
     duration: { type: String },
