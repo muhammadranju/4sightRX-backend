@@ -24,6 +24,8 @@ app.use(
       'http://localhost:3001',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
+      'https://www.4sightrx.com',
+      'https://4sightrx.com',
     ],
     credentials: true,
   }),
