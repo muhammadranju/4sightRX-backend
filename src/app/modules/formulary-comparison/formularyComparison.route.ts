@@ -25,6 +25,13 @@ router.get(
   FormularyComparisonController.getSummary,
 );
 
+// formulary pdf download
+router.get(
+  '/download-pdf/:patientId',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
+  FormularyComparisonController.downloadSummaryPDF,
+);
+
 /**
  * PATCH /formulary-comparison/:id/action
  * Clinician accepts, declines, or discontinues a recommendation.

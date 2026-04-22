@@ -10,6 +10,7 @@ import FormularyComparison from './formularyComparison.model';
 import { AnalyzeInput } from './formularyComparison.validation';
 import FormularyInterchange from './formularyInterchange.model';
 import { callGeminiAI, IGeminiPromptInput } from './gemini.service';
+import { generateFormularyPDF } from './formularyComparison.utils';
 
 export interface IFormularyComparisonSummary {
   changedMedications: IFormularyComparison[]; // Accepted recommendations
@@ -220,4 +221,12 @@ export const updateFormularyInterchangeService = async (
   }
 
   return doc;
+};
+
+export const generateSummaryPDFService = async (
+  patientId: string,
+): Promise<Buffer> => {
+  const summary = await getSummaryService(patientId);
+  const pdfBuffer = await generateFormularyPDF(summary);
+  return pdfBuffer;
 };

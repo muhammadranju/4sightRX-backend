@@ -9,6 +9,7 @@ import {
   getSummaryService,
   updateActionService,
   updateFormularyInterchangeService,
+  generateSummaryPDFService,
 } from './formularyComparison.service';
 import { actionSchema, analyzeSchema } from './formularyComparison.validation';
 
@@ -70,8 +71,23 @@ const getSummary = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Reconciliation summary fetched',
-    data: summary,
+    data: {
+      ...summary,
+      pdfUrl: `/api/v1/formulary-comparison/download-pdf/${patientId}`,
+    },
   });
+});
+
+const downloadSummaryPDF = catchAsync(async (req: Request, res: Response) => {
+  const patientId = req.params.patientId as string;
+  const pdfBuffer = await generateSummaryPDFService(patientId);
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename=formulary-reconciliation-${patientId}.pdf`,
+  );
+  res.send(pdfBuffer);
 });
 
 // formulary interchange
@@ -134,4 +150,5 @@ export const FormularyComparisonController = {
   getFormularyInterchange,
   createFormularyInterchange,
   updateFormularyInterchange,
+  downloadSummaryPDF,
 };
