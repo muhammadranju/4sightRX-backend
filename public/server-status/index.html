@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4sightRX | Operational</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="cinematic-wrapper">
+        <!-- Ambient Atmosphere -->
+        <div class="mist"></div>
+        <div class="floodlights">
+            <div class="light"></div>
+            <div class="light"></div>
+            <div class="light"></div>
+            <div class="light"></div>
+        </div>
+
+        <div class="overlay-ui">
+            <div class="logo-area">
+                <h1 class="brand-name">4SIGHT<span>RX</span></h1>
+                <div class="pulse-line"></div>
+            </div>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                CORE ENGINE ACTIVE
+            </div>
+        </div>
+
+        <div class="scene-container">
+            <div class="field-perspective">
+                <div class="grass"></div>
+                <div class="markings"></div>
+                
+                <!-- The Goal Area -->
+                <div class="goal-zone">
+                    <div class="goal-frame">
+                        <div class="post left"></div>
+                        <div class="post right"></div>
+                        <div class="crossbar"></div>
+                        <div class="net-mesh" id="net"></div>
+                    </div>
+                </div>
+
+                <!-- Goalkeeper -->
+                <div class="keeper-silhouette" id="keeper">
+                    <div class="k-head"></div>
+                    <div class="k-body"></div>
+                    <div class="k-arm-l"></div>
+                    <div class="k-arm-r"></div>
+                </div>
+
+                <!-- Ball -->
+                <div class="pro-ball" id="ball">
+                    <div class="ball-shadow"></div>
+                </div>
+            </div>
+
+            <!-- Player (Foreground) -->
+            <div class="striker-silhouette" id="striker">
+                <div class="s-head"></div>
+                <div class="s-body"></div>
+                <div class="s-arm-l"></div>
+                <div class="s-arm-r"></div>
+                <div class="s-leg-l"></div>
+                <div class="s-leg-r"></div>
+            </div>
+        </div>
+
+        <div class="success-message" id="successMsg">
+            <div class="goal-glow">GOAL</div>
+            <div class="sub-text">SERVER RUNNING SMOOTHLY</div>
+        </div>
+
+        <canvas id="confetti"></canvas>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

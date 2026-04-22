@@ -1,14 +1,13 @@
 import cors from 'cors';
 import express, { Request, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
 import fs from 'fs';
-import path from 'path';
+import { StatusCodes } from 'http-status-codes';
 import yaml from 'js-yaml';
+import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import router from './routes';
 import { Morgan } from './shared/morgen';
-import sendResponse from './shared/sendResponse';
 
 const app = express();
 
@@ -35,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 
 //file retrieve
 app.use(express.static('uploads'));
+app.use(express.static(path.join(process.cwd(), 'public/server-status')));
 
 // ── Swagger UI (/api-docs) ───────────────────────────────────────────────────
 // Server needs restart to pick up swagger.yaml changes
@@ -57,13 +57,7 @@ app.use('/api/v1', router);
 
 //live response
 app.get('/', (req: Request, res: Response) => {
-  const date = new Date(Date.now());
-  sendResponse(res, {
-    success: true,
-    statusCode: StatusCodes.OK,
-    message: 'Beep-beep! The server is alive and kicking. v2',
-    data: date,
-  });
+  res.sendFile(path.join(process.cwd(), 'public/server-status/index.html'));
 });
 
 //global error handle
