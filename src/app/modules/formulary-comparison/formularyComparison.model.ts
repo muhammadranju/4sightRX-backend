@@ -44,6 +44,10 @@ const formularyComparisonSchema = new Schema<IFormularyComparison>(
       enum: ['pending', 'accepted', 'declined', 'discontinued'],
       default: 'accepted',
     },
+    sessionId: {
+      type: String,
+      index: true,
+    },
     reasonNote: {
       type: String,
       trim: true,

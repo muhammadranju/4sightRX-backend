@@ -11,11 +11,12 @@ import { AnalyzeInput } from './formularyComparison.validation';
 import FormularyInterchange from './formularyInterchange.model';
 import { callGeminiAI, IGeminiPromptInput } from './gemini.service';
 import { generateFormularyPDF } from './formularyComparison.utils';
+import { nanoid } from 'nanoid';
 
 export interface IFormularyComparisonSummary {
-  changedMedications: IFormularyComparison[]; // Accepted recommendations
-  continuedMedications: IFormularyComparison[]; // Recommendations where no change was made
-  discontinuedMedications: IFormularyComparison[]; // Medications marked for discontinuation
+  continuedMedications: IFormularyComparison[]; // All medicines user accepted
+  discontinuedMedications: IFormularyComparison[]; // All medicines user discontinued
+  declinedMedications: IFormularyComparison[]; // All medicines user declined
   totalEstimatedMonthlySavings: number;
 }
 
@@ -30,6 +31,7 @@ export const analyzeFormularyService = async (
   patientId: string,
 ): Promise<IFormularyComparison[]> => {
   const { medicationIds } = input;
+  const sessionId = nanoid(); // Generate a unique ID for this session
 
   // ── Fetch all medications in one query ─────────────────────────────────────
   const validIds = medicationIds.filter(id => mongoose.isValidObjectId(id));
@@ -66,6 +68,7 @@ export const analyzeFormularyService = async (
       const doc = new FormularyComparison({
         medicationId: medication._id,
         patientId,
+        sessionId, // Attach the session ID
         currentMedication: medication.medicationName,
         recommendedMedication: aiResponse.recommendedMedication,
         rationale: aiResponse.rationale,
@@ -115,7 +118,31 @@ export const getSummaryService = async (
     throw new Error(`Invalid patient ID: ${patientId}`);
   }
 
-  const all = await FormularyComparison.find({ patientId })
+  // 1. Find the latest comparison record to identify the most recent session
+  const latestRecord = await FormularyComparison.findOne({ patientId })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (!latestRecord) {
+    return {
+      continuedMedications: [],
+      discontinuedMedications: [],
+      declinedMedications: [],
+      totalEstimatedMonthlySavings: 0,
+    };
+  }
+
+  // 2. Fetch all records belonging to the same session
+  // If sessionId exists, we use it. Otherwise, we fallback to a 1-minute window of the latest record's createdAt.
+  const query: any = { patientId };
+  if (latestRecord.sessionId) {
+    query.sessionId = latestRecord.sessionId;
+  } else {
+    const windowStart = new Date(latestRecord.createdAt.getTime() - 60000);
+    query.createdAt = { $gte: windowStart };
+  }
+
+  const all = await FormularyComparison.find(query)
     .populate('medicationId', 'medicationName strength dose frequency')
     .populate('patientId')
     .sort({ createdAt: -1 })
@@ -123,26 +150,19 @@ export const getSummaryService = async (
 
   const docs = all as unknown as IFormularyComparison[];
 
-  // 1. Changed: Accepted recommendations
-  const changedMedications = docs.filter(d => d.action === 'accepted');
+  // 1. Continued Medicines: All medicines the user accepted
+  const continuedMedications = docs.filter(d => d.action === 'accepted');
 
-  // 2. Discontinued: Explicitly discontinued or declined
-  const discontinuedMedications = docs.filter(
-    d => d.action === 'discontinued' || d.action === 'declined',
-  );
+  // 2. Discontinued Medicines: All medicines the user discontinued
+  const discontinuedMedications = docs.filter(d => d.action === 'discontinued');
 
-  // 3. Continued: Only truly pending — not accepted, not discontinued/declined
-  const continuedMedications = docs.filter(
-    d =>
-      d.action === 'pending' &&
-      !changedMedications.includes(d) &&
-      !discontinuedMedications.includes(d),
-  );
+  // 3. Declined Medicines: All medicines the user declined
+  const declinedMedications = docs.filter(d => d.action === 'declined');
 
   return {
-    changedMedications,
     continuedMedications,
     discontinuedMedications,
+    declinedMedications,
     totalEstimatedMonthlySavings: calculateTotalSavings(docs),
   };
 };

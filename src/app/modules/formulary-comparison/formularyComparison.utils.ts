@@ -1,16 +1,36 @@
 import PDFDocument from 'pdfkit';
 import { IFormularyComparisonSummary } from './formularyComparison.service';
 
+/**
+ * Generates a professional multi-page PDF report for formulary reconciliation.
+ * Handles dynamic content growth by automatically adding pages as needed.
+ */
 export const generateFormularyPDF = async (
   summary: IFormularyComparisonSummary,
 ): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({
+      margin: 50,
+      size: 'A4',
+      bufferPages: true, // Allows us to add footers to all pages at the end
+    });
     const buffers: Buffer[] = [];
 
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => resolve(Buffer.concat(buffers)));
     doc.on('error', reject);
+
+    const PAGE_HEIGHT = doc.page.height;
+    const BOTTOM_MARGIN = 70; // Leave space for footer
+
+    // --- Helper: Check for Page Break ---
+    const ensureSpace = (neededHeight: number) => {
+      if (doc.y + neededHeight > PAGE_HEIGHT - BOTTOM_MARGIN) {
+        doc.addPage();
+        return true;
+      }
+      return false;
+    };
 
     // --- Header ---
     doc
@@ -20,11 +40,13 @@ export const generateFormularyPDF = async (
     doc.moveDown();
 
     // --- Patient Information ---
-    const patient = summary.changedMedications[0]?.patientId || 
-                    summary.continuedMedications[0]?.patientId || 
-                    summary.discontinuedMedications[0]?.patientId;
+    const patient =
+      summary.continuedMedications[0]?.patientId ||
+      summary.discontinuedMedications[0]?.patientId ||
+      summary.declinedMedications[0]?.patientId;
 
     if (patient && typeof patient === 'object') {
+      ensureSpace(100);
       doc
         .fontSize(12)
         .fillColor('#34495e')
@@ -43,47 +65,62 @@ export const generateFormularyPDF = async (
       doc.moveDown();
     }
 
-    // --- Summary Section ---
+    // --- Summary Statistics ---
+    ensureSpace(50);
     doc
       .fontSize(14)
       .fillColor('#27ae60')
-      .text(`Total Estimated Monthly Savings: $${summary.totalEstimatedMonthlySavings}`, {
-        align: 'right',
-      });
+      .text(
+        `Total Estimated Monthly Savings: $${summary.totalEstimatedMonthlySavings}`,
+        {
+          align: 'right',
+        },
+      );
     doc.moveDown();
 
-    // --- Sections ---
+    // --- Section Renderer ---
     const renderSection = (title: string, data: any[], color: string) => {
-      if (data.length === 0) return;
+      if (!data || data.length === 0) return;
 
+      ensureSpace(40);
       doc.fontSize(14).fillColor(color).text(title, { underline: true });
       doc.moveDown(0.5);
 
       data.forEach((item, index) => {
+        // Estimate height needed for one item (Title + Rationale + Spacing)
+        const itemContent = `Current: ${item.currentMedication} -> Recommended: ${item.recommendedMedication}\nRationale: ${item.rationale}`;
+        const estimatedHeight =
+          doc.heightOfString(itemContent, { width: 500 }) + 30;
+
+        ensureSpace(estimatedHeight);
+
         doc
           .fontSize(11)
           .fillColor('#2c3e50')
-          .text(`${index + 1}. Current: ${item.currentMedication}`, { continued: true })
+          .text(`${index + 1}. Current: ${item.currentMedication}`, {
+            continued: true,
+          })
           .fillColor('#7f8c8d')
           .text(`  ->  Recommended: ${item.recommendedMedication}`);
-        
+
         doc
           .fontSize(9)
           .fillColor('#34495e')
           .text(`Rationale: ${item.rationale || 'N/A'}`);
-        
+
         if (item.estimatedSavings > 0) {
           doc.text(`Savings: $${item.estimatedSavings}`);
         }
-        
+
         doc.moveDown(0.5);
-        
+
         // Draw a light line between items
         if (index < data.length - 1) {
           doc
-            .moveTo(doc.x, doc.y)
+            .moveTo(50, doc.y)
             .lineTo(550, doc.y)
             .strokeColor('#ecf0f1')
+            .lineWidth(1)
             .stroke();
           doc.moveDown(0.5);
         }
@@ -91,21 +128,42 @@ export const generateFormularyPDF = async (
       doc.moveDown();
     };
 
-    renderSection('Changed Medications (Accepted)', summary.changedMedications, '#2980b9');
-    renderSection('Continued Medications', summary.continuedMedications, '#f39c12');
-    renderSection('Discontinued Medications', summary.discontinuedMedications, '#c0392b');
+    renderSection(
+      'Continued Medications (Accepted)',
+      summary.continuedMedications,
+      '#27ae60',
+    );
+    renderSection(
+      'Discontinued Medications',
+      summary.discontinuedMedications,
+      '#c0392b',
+    );
+    renderSection(
+      'Declined Medications',
+      summary.declinedMedications,
+      '#7f8c8d',
+    );
 
-    // --- Footer ---
-    const pages = doc.bufferedPageRange();
-    for (let i = 0; i < pages.count; i++) {
+    // --- Footer (Applied to all pages) ---
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
+
+      // Draw a line above footer
+      doc
+        .moveTo(50, PAGE_HEIGHT - 60)
+        .lineTo(550, PAGE_HEIGHT - 60)
+        .strokeColor('#bdc3c7')
+        .lineWidth(0.5)
+        .stroke();
+
       doc
         .fontSize(8)
         .fillColor('#95a5a6')
         .text(
-          `Generated by 4sightRX | Date: ${new Date().toLocaleDateString()} | Page ${i + 1} of ${pages.count}`,
+          `Generated by 4sightRX | Date: ${new Date().toLocaleDateString()} | Page ${i + 1} of ${range.count}`,
           50,
-          doc.page.height - 50,
+          PAGE_HEIGHT - BOTTOM_MARGIN + 20,
           { align: 'center' },
         );
     }

@@ -30,8 +30,15 @@ export interface IFormularyComparison {
   // Clinician's decision on the recommendation
   action: FormularyAction;
 
+  // Session ID — groups all comparisons from one reconciliation session
+  sessionId?: string;
+
   // Detailed reasons for the decision (Phase 4)
   reasonNote?: string;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IFormularyInterchange {
