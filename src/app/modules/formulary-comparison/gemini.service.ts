@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import pdf from 'pdf-parse';
+// eslint-disable-next-line no-undef
+const pdf = require('pdf-parse');
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ async function executeWithRetry<T>(
       console.warn(
         `[GeminiService] Transient error detected. Retrying in ${delay}ms... (${retries} attempts left)`,
       );
+      // eslint-disable-next-line no-undef
       await new Promise(resolve => setTimeout(resolve, delay));
       return executeWithRetry(operation, retries - 1, delay * 2);
     }
@@ -180,15 +182,20 @@ export const extractMedicationsFromImage = async (
 
   try {
     let textContent = '';
-    
+
     // 1. If PDF, try text extraction first
     if (mimeType === 'application/pdf') {
       try {
         const data = await pdf(fileBuffer);
         textContent = data.text.trim();
-        console.log(`[GeminiOCR] PDF text extraction length: ${textContent.length}`);
+        console.log(
+          `[GeminiOCR] PDF text extraction length: ${textContent.length}`,
+        );
       } catch (pdfError) {
-        console.warn('[GeminiOCR] pdf-parse failed, falling back to Gemini Vision', pdfError);
+        console.warn(
+          '[GeminiOCR] pdf-parse failed, falling back to Gemini Vision',
+          pdfError,
+        );
       }
     }
 
@@ -197,14 +204,18 @@ export const extractMedicationsFromImage = async (
 
     return await executeWithRetry(async () => {
       let result;
-      
+
       if (textContent && textContent.length > 50) {
         // Use text-based extraction
         const prompt = buildOcrPrompt('extracted PDF text content');
-        result = await model.generateContent(`${prompt}\n\nCONTENT:\n${textContent}`);
+        result = await model.generateContent(
+          `${prompt}\n\nCONTENT:\n${textContent}`,
+        );
       } else {
         // Use Vision-based extraction (Image or Scanned PDF)
-        const prompt = buildOcrPrompt(mimeType.includes('pdf') ? 'PDF document' : 'prescription image');
+        const prompt = buildOcrPrompt(
+          mimeType.includes('pdf') ? 'PDF document' : 'prescription image',
+        );
         result = await model.generateContent([
           prompt,
           {
@@ -225,7 +236,7 @@ export const extractMedicationsFromImage = async (
     });
   } catch (error: any) {
     console.error('[GeminiOCR] Full extraction flow failed', error);
-    
+
     // Provide a more descriptive error message
     const detail = error?.message || 'Unknown Gemini Error';
     throw new Error(`Medication extraction failed: ${detail}`);
