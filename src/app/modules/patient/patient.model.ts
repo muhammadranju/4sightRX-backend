@@ -16,8 +16,8 @@ const patientSchema = new Schema<INewPatient>(
     },
     patientIdMrn: {
       type: String,
-      required: [true, 'Patient MRN is required'],
-      unique: true,
+      // required: [true, 'Patient MRN is required'],
+      // unique: true,
       trim: true,
     },
     dateOfBirth: {
@@ -30,11 +30,11 @@ const patientSchema = new Schema<INewPatient>(
       enum: Object.values(Gender),
       required: [true, 'Gender is required'],
     },
-    phoneNumber: {
-      type: String,
-      required: [true, 'Phone number is required'],
-      trim: true,
-    },
+    // phoneNumber: {
+    //   type: String,
+    //   required: [true, 'Phone number is required'],
+    //   trim: true,
+    // },
     medicationAllergies: {
       type: String,
       required: [true, 'Medication allergies field is required'],
