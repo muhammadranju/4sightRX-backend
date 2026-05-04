@@ -64,7 +64,20 @@ const getAllUsersFromDB = async (
 ) => {
   const skip = (page - 1) * limit;
 
+  // 1. Initial pipeline with type conversion for agencyId to ensure lookup works
   const pipeline: any[] = [
+    {
+      $addFields: {
+        // Convert to ObjectId if it's a string, handle null/missing cases
+        agencyId: {
+          $cond: {
+            if: { $and: [{ $gt: ['$agencyId', null] }, { $eq: [{ $type: '$agencyId' }, 'string'] }] },
+            then: { $toObjectId: '$agencyId' },
+            else: '$agencyId',
+          },
+        },
+      },
+    },
     {
       $lookup: {
         from: 'facilities',
@@ -74,6 +87,12 @@ const getAllUsersFromDB = async (
       },
     },
     { $unwind: { path: '$agency', preserveNullAndEmptyArrays: true } },
+    {
+      $addFields: {
+        // Map facilityName to name as requested by frontend
+        'agency.name': '$agency.facilityName',
+      },
+    },
   ];
 
   const match: any = {};
@@ -85,6 +104,7 @@ const getAllUsersFromDB = async (
       'hospitalName',
       'specialty',
       'agency.facilityName',
+      'agency.name',
     ];
     match.$or = searchableFields.map(field => ({
       [field]: { $regex: searchTerm, $options: 'i' },
@@ -95,7 +115,9 @@ const getAllUsersFromDB = async (
     match.agencyId = new mongoose.Types.ObjectId(agencyId);
   }
 
-  pipeline.push({ $match: match });
+  if (Object.keys(match).length > 0) {
+    pipeline.push({ $match: match });
+  }
 
   // Sorting logic
   const sortStage: any = {};
