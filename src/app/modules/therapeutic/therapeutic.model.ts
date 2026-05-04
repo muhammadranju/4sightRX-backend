@@ -3,6 +3,11 @@ import { ITherapeutic } from './therapeutic.interface';
 
 const therapeuticSchema = new Schema<ITherapeutic>(
   {
+    agencyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Facility',
+      index: true,
+    },
     // Stored lowercase for case-insensitive matching in queries
     drugName: {
       type: String,

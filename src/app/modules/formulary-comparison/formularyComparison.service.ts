@@ -29,6 +29,7 @@ export const calculateTotalSavings = (docs: IFormularyComparison[]): number => {
 export const analyzeFormularyService = async (
   input: AnalyzeInput,
   patientId: string,
+  agencyId: string,
 ): Promise<IFormularyComparison[]> => {
   const { medicationIds } = input;
   const sessionId = nanoid(); // Generate a unique ID for this session
@@ -51,8 +52,10 @@ export const analyzeFormularyService = async (
       const nameKey = medication.medicationName.toLowerCase();
 
       // 1. Therapeutic alternative lookup via new drugName field (stored lowercase)
+      // Now filtered by agencyId to ensure agency-specific formulary
       const therapeutic = await Therapeutic.findOne({
         drugName: nameKey,
+        agencyId: agencyId,
       }).lean();
 
       // 2. Build prompt input
@@ -171,20 +174,25 @@ export const getFormularyInterchangeService = async (
   page: number,
   limit: number,
   search: string,
+  agencyId?: string,
 ) => {
   const query: any = {};
   if (search) {
-    query.medicationName = { $regex: search, $options: 'i' };
+    query.currentMedication = { $regex: search, $options: 'i' };
+  }
+
+  if (agencyId) {
+    query.agencyId = agencyId;
   }
 
   const skip = (page - 1) * limit;
   const [data, total] = await Promise.all([
     FormularyInterchange.find(query)
+      .populate('agencyId')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .lean()
-      .sort({ createdAt: -1 }),
+      .lean(),
     FormularyInterchange.countDocuments(query),
   ]);
 
@@ -200,6 +208,7 @@ export const createFormularyInterchangeService = async (
   payload: IFormularyInterchange,
 ) => {
   const {
+    agencyId,
     currentMedication,
     alternativeDrug,
     rationale,
@@ -208,6 +217,7 @@ export const createFormularyInterchangeService = async (
   } = payload;
 
   const doc = new FormularyInterchange({
+    agencyId,
     currentMedication,
     alternativeDrug,
     rationale,

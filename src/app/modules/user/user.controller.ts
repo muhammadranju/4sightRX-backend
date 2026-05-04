@@ -57,7 +57,18 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
   const searchTerm = req.query.search as string;
-  const result = await UserService.getAllUsersFromDB(page, limit, searchTerm);
+  const agencyId = req.query.agencyId as string;
+  const sortBy = req.query.sortBy as string;
+  const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+
+  const result = await UserService.getAllUsersFromDB(
+    page,
+    limit,
+    searchTerm,
+    agencyId,
+    sortBy,
+    sortOrder,
+  );
 
   sendResponse(res, {
     success: true,

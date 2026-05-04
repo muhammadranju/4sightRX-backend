@@ -1,4 +1,4 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { USER_ROLES } from '../../../enums/user';
 
 export type IUser = {
@@ -8,6 +8,7 @@ export type IUser = {
   email: string;
   password: string;
   location: string;
+  agencyId: Types.ObjectId;
   image?: string;
   status: 'active' | 'blocked';
   verified: boolean;

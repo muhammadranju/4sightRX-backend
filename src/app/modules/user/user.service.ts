@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { StatusCodes } from 'http-status-codes';
 import { JwtPayload } from 'jsonwebtoken';
 import { USER_ROLES } from '../../../enums/user';
@@ -53,9 +54,29 @@ const updateProfileToDB = async (
   return updateDoc;
 };
 
-const getAllUsersFromDB = async (page = 1, limit = 10, searchTerm?: string) => {
-  const filter: any = {};
+const getAllUsersFromDB = async (
+  page = 1,
+  limit = 10,
+  searchTerm?: string,
+  agencyId?: string,
+  sortBy?: string,
+  sortOrder: 'asc' | 'desc' = 'desc',
+) => {
+  const skip = (page - 1) * limit;
 
+  const pipeline: any[] = [
+    {
+      $lookup: {
+        from: 'facilities',
+        localField: 'agencyId',
+        foreignField: '_id',
+        as: 'agency',
+      },
+    },
+    { $unwind: { path: '$agency', preserveNullAndEmptyArrays: true } },
+  ];
+
+  const match: any = {};
   if (searchTerm) {
     const searchableFields = [
       'name',
@@ -63,17 +84,35 @@ const getAllUsersFromDB = async (page = 1, limit = 10, searchTerm?: string) => {
       'role',
       'hospitalName',
       'specialty',
+      'agency.facilityName',
     ];
-    filter.$or = searchableFields.map(field => ({
+    match.$or = searchableFields.map(field => ({
       [field]: { $regex: searchTerm, $options: 'i' },
     }));
   }
 
-  const skip = (page - 1) * limit;
-  const [data, total] = await Promise.all([
-    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    User.countDocuments(filter),
+  if (agencyId) {
+    match.agencyId = new mongoose.Types.ObjectId(agencyId);
+  }
+
+  pipeline.push({ $match: match });
+
+  // Sorting logic
+  const sortStage: any = {};
+  if (sortBy === 'agencyName') {
+    sortStage['agency.facilityName'] = sortOrder === 'asc' ? 1 : -1;
+  } else {
+    sortStage[sortBy || 'createdAt'] = sortOrder === 'asc' ? 1 : -1;
+  }
+  pipeline.push({ $sort: sortStage });
+
+  const [data, countResult] = await Promise.all([
+    User.aggregate(pipeline).skip(skip).limit(limit),
+    User.aggregate([...pipeline, { $count: 'total' }]),
   ]);
+
+  const total = countResult[0]?.total || 0;
+
   return { data, total, page, limit };
 };
 

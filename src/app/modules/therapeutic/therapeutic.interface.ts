@@ -1,6 +1,7 @@
-// ── Therapeutic Module ───────────────────────────────────────────────────────
+import { Types } from 'mongoose';
 
 export interface ITherapeutic {
+  agencyId?: Types.ObjectId; // Optional for backward compatibility with global formulary
   drugName: string; // The drug to look up (stored lowercase)
   alternative: string; // The suggested alternative drug name
   drugClass: string; // e.g., "Beta Blocker", "ACE Inhibitor"

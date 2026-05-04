@@ -42,6 +42,7 @@ export interface IFormularyComparison {
 }
 
 export interface IFormularyInterchange {
+  agencyId: Types.ObjectId;
   currentMedication: string;
   alternativeDrug: string;
   rationale: string;

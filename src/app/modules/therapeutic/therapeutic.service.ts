@@ -17,16 +17,26 @@ export const createTherapeuticService = async (
 export const getAllTherapeuticsService = async (
   page = 1,
   limit = 10,
+  agencyId?: string,
 ): Promise<{
   data: ITherapeutic[];
   total: number;
   page: number;
   limit: number;
 }> => {
+  const filter: any = {};
+  if (agencyId) {
+    filter.agencyId = agencyId;
+  }
   const skip = (page - 1) * limit;
   const [data, total] = await Promise.all([
-    Therapeutic.find().sort({ drugName: 1 }).skip(skip).limit(limit).lean(),
-    Therapeutic.countDocuments(),
+    Therapeutic.find(filter)
+      .populate('agencyId')
+      .sort({ drugName: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Therapeutic.countDocuments(filter),
   ]);
   return { data: data as unknown as ITherapeutic[], total, page, limit };
 };
@@ -35,10 +45,13 @@ export const getAllTherapeuticsService = async (
 
 export const getTherapeuticByDrugNameService = async (
   drugName: string,
+  agencyId?: string,
 ): Promise<ITherapeutic> => {
-  const doc = await Therapeutic.findOne({
-    drugName: drugName.toLowerCase(),
-  }).lean();
+  const query: any = { drugName: drugName.toLowerCase() };
+  if (agencyId) {
+    query.agencyId = agencyId;
+  }
+  const doc = await Therapeutic.findOne(query).lean();
   if (!doc)
     throw new ApiError(
       StatusCodes.NOT_FOUND,

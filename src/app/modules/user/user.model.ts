@@ -12,6 +12,12 @@ const userSchema = new Schema<IUser, UserModal>(
       type: String,
       required: true,
     },
+    agencyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Facility',
+      required: true,
+      index: true,
+    },
     role: {
       type: String,
       enum: Object.values(USER_ROLES),

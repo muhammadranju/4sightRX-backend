@@ -3,6 +3,12 @@ import { IFormularyInterchange } from './formularyComparison.interface';
 
 const formularyComparisonSchema = new Schema<IFormularyInterchange>(
   {
+    agencyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Facility',
+      required: [true, 'Agency ID is required'],
+      index: true,
+    },
     currentMedication: {
       type: String,
       required: [true, 'Current medication name is required'],

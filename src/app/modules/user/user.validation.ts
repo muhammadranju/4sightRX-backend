@@ -4,6 +4,7 @@ const createUserZodSchema = z.object({
   body: z.object({
     // user: z.object({
     name: z.string({ message: 'Name is required' }),
+    agencyId: z.string({ message: 'Agency ID is required' }),
     // contact: z.string({ message: 'Contact is required' }),
     email: z.string({ message: 'Email is required' }),
     password: z.string({ message: 'Password is required' }),
