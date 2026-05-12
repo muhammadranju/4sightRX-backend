@@ -60,7 +60,7 @@ const loginUserFromDB = async (payload: ILoginData) => {
       id: isExistUser._id,
       role: isExistUser.role,
       email: isExistUser.email,
-      agencyId: isExistUser.agencyId,
+      organizationId: isExistUser.organizationId,
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.jwt_expire_in as SignOptions['expiresIn'],
@@ -70,8 +70,8 @@ const loginUserFromDB = async (payload: ILoginData) => {
     _id: isExistUser._id,
     role: isExistUser.role,
     email: isExistUser.email,
-    name: isExistUser.name,
-    agencyId: isExistUser.agencyId,
+    name: `${isExistUser.firstName} ${isExistUser.lastName}`,
+    organizationId: isExistUser.organizationId,
     image: isExistUser.image,
   };
 

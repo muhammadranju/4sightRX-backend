@@ -29,7 +29,7 @@ export const calculateTotalSavings = (docs: IFormularyComparison[]): number => {
 export const analyzeFormularyService = async (
   input: AnalyzeInput,
   patientId: string,
-  agencyId: string,
+  organizationId: string,
 ): Promise<IFormularyComparison[]> => {
   const { medicationIds } = input;
   const sessionId = nanoid(); // Generate a unique ID for this session
@@ -40,7 +40,7 @@ export const analyzeFormularyService = async (
     throw new Error('No valid medication IDs provided');
   }
 
-  const medications = await Medication.find({ _id: { $in: validIds } }).lean();
+  const medications = await Medication.find({ _id: { $in: validIds }, organizationId }).lean();
 
   if (medications.length === 0) {
     throw new Error('No medications found for the provided IDs');
@@ -52,10 +52,10 @@ export const analyzeFormularyService = async (
       const nameKey = medication.medicationName.toLowerCase();
 
       // 1. Therapeutic alternative lookup via new drugName field (stored lowercase)
-      // Now filtered by agencyId to ensure agency-specific formulary
+      // Now filtered by organizationId to ensure organization-specific formulary
       const therapeutic = await Therapeutic.findOne({
         drugName: nameKey,
-        agencyId: agencyId,
+        organizationId: organizationId,
       }).lean();
 
       // 2. Build prompt input
@@ -69,6 +69,7 @@ export const analyzeFormularyService = async (
 
       // 5. Persist recommendation using new+save for correct Mongoose v9 typing
       const doc = new FormularyComparison({
+        organizationId,
         medicationId: medication._id,
         patientId,
         sessionId, // Attach the session ID
@@ -116,13 +117,17 @@ export const updateActionService = async (
 
 export const getSummaryService = async (
   patientId: string,
+  organizationId?: string,
 ): Promise<IFormularyComparisonSummary> => {
   if (!mongoose.isValidObjectId(patientId)) {
     throw new Error(`Invalid patient ID: ${patientId}`);
   }
 
-  // 1. Find the latest comparison record to identify the most recent session
-  const latestRecord = await FormularyComparison.findOne({ patientId })
+  const query: any = { patientId };
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
+  const latestRecord = await FormularyComparison.findOne(query)
     .sort({ createdAt: -1 })
     .lean();
 
@@ -137,15 +142,18 @@ export const getSummaryService = async (
 
   // 2. Fetch all records belonging to the same session
   // If sessionId exists, we use it. Otherwise, we fallback to a 1-minute window of the latest record's createdAt.
-  const query: any = { patientId };
+  const sessionQuery: any = { patientId };
+  if (organizationId) {
+    sessionQuery.organizationId = organizationId;
+  }
   if (latestRecord.sessionId) {
-    query.sessionId = latestRecord.sessionId;
+    sessionQuery.sessionId = latestRecord.sessionId;
   } else {
     const windowStart = new Date(latestRecord.createdAt.getTime() - 60000);
-    query.createdAt = { $gte: windowStart };
+    sessionQuery.createdAt = { $gte: windowStart };
   }
 
-  const all = await FormularyComparison.find(query)
+  const all = await FormularyComparison.find(sessionQuery)
     .populate('medicationId', 'medicationName strength dose frequency')
     .populate('patientId')
     .sort({ createdAt: -1 })
@@ -174,15 +182,15 @@ export const getFormularyInterchangeService = async (
   page: number,
   limit: number,
   search: string,
-  agencyId?: string,
+  organizationId?: string,
 ) => {
   const query: any = {};
   if (search) {
     query.currentMedication = { $regex: search, $options: 'i' };
   }
 
-  if (agencyId) {
-    query.agencyId = agencyId;
+  if (organizationId) {
+    query.organizationId = organizationId;
   }
 
   const skip = (page - 1) * limit;
@@ -208,7 +216,7 @@ export const createFormularyInterchangeService = async (
   payload: IFormularyInterchange,
 ) => {
   const {
-    agencyId,
+    organizationId,
     currentMedication,
     alternativeDrug,
     rationale,
@@ -217,7 +225,7 @@ export const createFormularyInterchangeService = async (
   } = payload;
 
   const doc = new FormularyInterchange({
-    agencyId,
+    organizationId,
     currentMedication,
     alternativeDrug,
     rationale,

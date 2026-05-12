@@ -27,11 +27,11 @@ const analyzeFormulary = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  const agencyId = req.user.agencyId;
+  const organizationId = req.user.organizationId;
   const recommendations = await analyzeFormularyService(
     parsed.data.body,
     patientId,
-    agencyId,
+    organizationId,
   );
 
   sendResponse(res, {
@@ -68,7 +68,7 @@ const updateAction = catchAsync(async (req: Request, res: Response) => {
 
 const getSummary = catchAsync(async (req: Request, res: Response) => {
   const patientId = req.query.patientId as string;
-  const summary = await getSummaryService(patientId);
+  const summary = await getSummaryService(patientId, req.user.organizationId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -101,18 +101,16 @@ const getFormularyInterchange = catchAsync(
     const limit = Number(req.query.limit) || 10;
     const search = req.query.search as string;
 
-    // If super admin, allow filtering by agencyId from query
-    // Otherwise, force filter by user's own agencyId
-    let agencyId = req.query.agencyId as string;
+    let organizationId = req.query.organizationId as string;
     if (req.user.role !== USER_ROLES.SUPER_ADMIN) {
-      agencyId = req.user.agencyId;
+      organizationId = req.user.organizationId;
     }
 
     const summary = await getFormularyInterchangeService(
       page,
       limit,
       search,
-      agencyId,
+      organizationId,
     );
 
     sendResponse(res, {
@@ -134,8 +132,8 @@ const createFormularyInterchange = catchAsync(
   async (req: Request, res: Response) => {
     const { ...data } = req.body;
 
-    if (!data.agencyId && req.user.role !== USER_ROLES.SUPER_ADMIN) {
-      data.agencyId = req.user.agencyId;
+    if (!data.organizationId && req.user.role !== USER_ROLES.SUPER_ADMIN) {
+      data.organizationId = req.user.organizationId;
     }
 
     const summary = await createFormularyInterchangeService(data);
