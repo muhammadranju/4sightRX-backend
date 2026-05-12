@@ -5,7 +5,8 @@ import sendResponse from '../../../shared/sendResponse';
 import { AnalyticsService } from './analytics.service';
 
 const getAppAnalytics = catchAsync(async (req: Request, res: Response) => {
-  const result = await AnalyticsService.getAppAnalyticsFromDB();
+  const user = req.user;
+  const result = await AnalyticsService.getAppAnalyticsFromDB(user.organizationId);
 
   sendResponse(res, {
     success: true,
@@ -17,7 +18,8 @@ const getAppAnalytics = catchAsync(async (req: Request, res: Response) => {
 
 const getDashboardAnalytics = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await AnalyticsService.getDashboardAnalyticsFromDB();
+    const user = req.user;
+    const result = await AnalyticsService.getDashboardAnalyticsFromDB(user.organizationId);
 
     sendResponse(res, {
       success: true,
@@ -29,7 +31,8 @@ const getDashboardAnalytics = catchAsync(
 );
 
 const getMonthlySavingCost = catchAsync(async (req: Request, res: Response) => {
-  const result = await AnalyticsService.getMonthlySavingCostFromDB();
+  const user = req.user;
+  const result = await AnalyticsService.getMonthlySavingCostFromDB(user.organizationId);
 
   sendResponse(res, {
     success: true,
@@ -39,22 +42,21 @@ const getMonthlySavingCost = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getRecommendationAcceptanceRate = catchAsync(
-  async (req: Request, res: Response) => {
-    const result =
-      await AnalyticsService.getRecommendationAcceptanceRateFromDB();
+const getMonthlySavings = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  const result = await AnalyticsService.getOrganizationSavingsMetrics(user.organizationId);
 
-    sendResponse(res, {
-      success: true,
-      statusCode: StatusCodes.OK,
-      message: 'Recommendation acceptance rate retrieved successfully',
-      data: result,
-    });
-  },
-);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Monthly savings metrics retrieved successfully',
+    data: result,
+  });
+});
 
 const getRecentActivities = catchAsync(async (req: Request, res: Response) => {
-  const result = await AnalyticsService.getRecentActivitiesFromDB();
+  const user = req.user;
+  const result = await AnalyticsService.getRecentActivitiesFromDB(user.organizationId);
 
   sendResponse(res, {
     success: true,
@@ -68,6 +70,6 @@ export const AnalyticsController = {
   getAppAnalytics,
   getDashboardAnalytics,
   getMonthlySavingCost,
-  getRecommendationAcceptanceRate,
   getRecentActivities,
+  getMonthlySavings,
 };

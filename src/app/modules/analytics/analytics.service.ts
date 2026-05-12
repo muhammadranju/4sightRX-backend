@@ -4,26 +4,31 @@ import Patient from '../patient/patient.model';
 import { User } from '../user/user.model';
 import { Activity } from '../activity/activity.model';
 import getRelativeTime from '../../../util/relativeTime';
+import config from '../../../config';
 
-const getAppAnalyticsFromDB = async () => {
-  const totalActivePatients = await Patient.countDocuments({
-    status: 'ACTIVE',
-  });
-  const totalCompletes = await FormularyComparison.countDocuments({
-    action: 'accepted',
-  });
+const getAppAnalyticsFromDB = async (organizationId?: string) => {
+  const query: any = { status: 'ACTIVE' };
+  if (organizationId) query.organizationId = organizationId;
+  const totalActivePatients = await Patient.countDocuments(query);
+
+  const compQuery: any = { action: 'accepted' };
+  if (organizationId) compQuery.organizationId = organizationId;
+  const totalCompletes = await FormularyComparison.countDocuments(compQuery);
 
   // Calculate monthly savings for the current month
   const startOfMonth = new Date();
   startOfMonth.setHours(0, 0, 0, 0);
   startOfMonth.setDate(1);
 
+  const match: any = {
+    action: 'accepted',
+    createdAt: { $gte: startOfMonth },
+  };
+  if (organizationId) match.organizationId = organizationId;
+
   const monthlySavingsResult = await FormularyComparison.aggregate([
     {
-      $match: {
-        action: 'accepted',
-        createdAt: { $gte: startOfMonth },
-      },
+      $match: match,
     },
     {
       $group: {
@@ -36,9 +41,9 @@ const getAppAnalyticsFromDB = async () => {
   const monthlySavings =
     monthlySavingsResult.length > 0 ? monthlySavingsResult[0].totalSavings : 0;
 
-  const totalPending = await FormularyComparison.countDocuments({
-    action: 'pending',
-  });
+  const pendingQuery: any = { action: 'pending' };
+  if (organizationId) pendingQuery.organizationId = organizationId;
+  const totalPending = await FormularyComparison.countDocuments(pendingQuery);
 
   return {
     totalActivePatients,
@@ -48,16 +53,21 @@ const getAppAnalyticsFromDB = async () => {
   };
 };
 
-const getDashboardAnalyticsFromDB = async () => {
-  const totalUsers = await User.countDocuments();
-  const totalActivePatients = await Patient.countDocuments({
-    status: 'ACTIVE',
-  });
+const getDashboardAnalyticsFromDB = async (organizationId?: string) => {
+  const userQuery: any = {};
+  if (organizationId) userQuery.organizationId = organizationId;
+  const totalUsers = await User.countDocuments(userQuery);
+
+  const patientQuery: any = { status: 'ACTIVE' };
+  if (organizationId) patientQuery.organizationId = organizationId;
+  const totalActivePatients = await Patient.countDocuments(patientQuery);
+
+  const match: any = { action: 'accepted' };
+  if (organizationId) match.organizationId = organizationId;
+
   const totalCostSavingsResult = await FormularyComparison.aggregate([
     {
-      $match: {
-        action: 'accepted',
-      },
+      $match: match,
     },
     {
       $group: {
@@ -72,7 +82,9 @@ const getDashboardAnalyticsFromDB = async () => {
       ? totalCostSavingsResult[0].totalSavings
       : 0;
 
-  const totalInterchangeMode = await FormularyInterchange.countDocuments();
+  const interchangeQuery: any = {};
+  if (organizationId) interchangeQuery.organizationId = organizationId;
+  const totalInterchangeMode = await FormularyInterchange.countDocuments(interchangeQuery);
 
   return {
     totalUsers,
@@ -82,27 +94,17 @@ const getDashboardAnalyticsFromDB = async () => {
   };
 };
 
-const getMonthlySavingCostFromDB = async () => {
+const getMonthlySavingCostFromDB = async (organizationId?: string) => {
   const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
+
+  const match: any = { action: 'accepted' };
+  if (organizationId) match.organizationId = organizationId;
 
   const result = await FormularyComparison.aggregate([
     {
-      $match: {
-        action: 'accepted',
-      },
+      $match: match,
     },
     {
       $group: {
@@ -115,7 +117,6 @@ const getMonthlySavingCostFromDB = async () => {
     },
   ]);
 
-  // Map results to the required format with month names, filling in missing months with 0
   const monthlySavingsMap = result.reduce((acc: any, item: any) => {
     acc[item._id] = item.saving;
     return acc;
@@ -129,67 +130,57 @@ const getMonthlySavingCostFromDB = async () => {
   return formattedResult;
 };
 
-const getRecommendationAcceptanceRateFromDB = async () => {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
+const getOrganizationSavingsMetrics = async (organizationId: string) => {
+  const startOfMonth = new Date();
+  startOfMonth.setHours(0, 0, 0, 0);
+  startOfMonth.setDate(1);
 
-  const result = await FormularyComparison.aggregate([
+  // Total Monthly Savings
+  const match: any = {
+    action: 'accepted',
+    createdAt: { $gte: startOfMonth },
+    organizationId,
+  };
+
+  const monthlySavingsResult = await FormularyComparison.aggregate([
+    { $match: match },
     {
       $group: {
-        _id: { $month: '$createdAt' },
-        total: { $count: {} },
-        accepted: {
-          $sum: {
-            $cond: [{ $eq: ['$action', 'accepted'] }, 1, 0],
-          },
-        },
+        _id: null,
+        totalSavings: { $sum: '$estimatedSavings' },
       },
-    },
-    {
-      $sort: { _id: 1 },
     },
   ]);
 
-  // Map results to the required format with month names, filling in missing months with 0
-  const statsMap = result.reduce((acc: any, item: any) => {
-    acc[item._id] = {
-      total: item.total,
-      accepted: item.accepted,
-    };
-    return acc;
-  }, {});
+  const totalMonthlySavings = monthlySavingsResult[0]?.totalSavings || 0;
 
-  const formattedResult = months.map((month, index) => {
-    const monthIndex = index + 1;
-    const stats = statsMap[monthIndex] || { total: 0, accepted: 0 };
-    const acceptanceRate =
-      stats.total > 0 ? (stats.accepted / stats.total) * 100 : 0;
+  // Monthly Medication Savings (totalSavings / numberOfPatients)
+  const patientCount = await Patient.countDocuments({ organizationId });
+  const monthlyMedicationSavings = patientCount > 0 ? totalMonthlySavings / patientCount : 0;
 
-    return {
-      month,
-      acceptanceRate: Math.round(acceptanceRate), // Round to nearest integer for cleaner chart
-    };
+  // Operational Cost Savings
+  const patientsAdmitted = await Patient.countDocuments({
+    organizationId,
+    admissionDate: { $gte: startOfMonth },
   });
 
-  return formattedResult;
+  const { avgNurseSalary, avgAdmissionTimeBefore, avgAdmissionTimeAfter } = config.analytics;
+  const timeSavedMinutes = avgAdmissionTimeBefore - avgAdmissionTimeAfter;
+  const operationalSavings = patientsAdmitted * (timeSavedMinutes / 60) * avgNurseSalary;
+
+  return {
+    monthlyMedicationSavings,
+    totalMonthlySavings,
+    operationalSavings,
+    patientsAdmitted,
+  };
 };
 
-const getRecentActivitiesFromDB = async () => {
-  const result = await Activity.find().sort({ createdAt: -1 }).limit(10);
+const getRecentActivitiesFromDB = async (organizationId?: string) => {
+  const query: any = {};
+  if (organizationId) query.organizationId = organizationId;
+  const result = await Activity.find(query).sort({ createdAt: -1 }).limit(10);
 
-  // Format timestamps to human-readable relative time
   const formattedResult = result.map(activity => {
     const activityObj = activity.toObject();
     return {
@@ -205,6 +196,6 @@ export const AnalyticsService = {
   getAppAnalyticsFromDB,
   getDashboardAnalyticsFromDB,
   getMonthlySavingCostFromDB,
-  getRecommendationAcceptanceRateFromDB,
   getRecentActivitiesFromDB,
+  getOrganizationSavingsMetrics,
 };
