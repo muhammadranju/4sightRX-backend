@@ -1,9 +1,14 @@
 import { Schema, model } from 'mongoose';
-import { Gender, INewPatient } from './patient.interface';
+import { LifeExpectancy, INewPatient, Sex } from './patient.interface';
 import { PartialStatus } from '../../../enums/user';
 
 const patientSchema = new Schema<INewPatient>(
   {
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+    },
     firstName: {
       type: String,
       required: [true, 'First name is required'],
@@ -16,39 +21,49 @@ const patientSchema = new Schema<INewPatient>(
     },
     patientIdMrn: {
       type: String,
-      // required: [true, 'Patient MRN is required'],
-      // unique: true,
       trim: true,
     },
-    dateOfBirth: {
-      type: String,
+    dob: {
+      type: Date,
       required: [true, 'Date of birth is required'],
     },
     age: { type: Number },
-    gender: {
+    sex: {
       type: String,
-      enum: Object.values(Gender),
-      required: [true, 'Gender is required'],
+      enum: Object.values(Sex),
+      required: [true, 'Sex is required'],
     },
-    // phoneNumber: {
-    //   type: String,
-    //   required: [true, 'Phone number is required'],
-    //   trim: true,
-    // },
-    medicationAllergies: {
-      type: String,
-      required: [true, 'Medication allergies field is required'],
-      trim: true,
-    },
+    allergies: [
+      {
+        allergyId: {
+          type: Schema.Types.ObjectId,
+          ref: 'Allergy',
+        },
+        name: { type: String },
+        custom: { type: Boolean, default: false },
+      },
+    ],
     admissionDate: {
-      type: String,
+      type: Date,
       required: [true, 'Admission date is required'],
+    },
+    lifeExpectancy: {
+      type: String,
+      enum: Object.values(LifeExpectancy),
+      required: [true, 'Life expectancy is required'],
     },
     status: {
       type: String,
       enum: Object.values(PartialStatus),
       default: PartialStatus.PENDING,
     },
+    patientUploads: [
+      {
+        url: { type: String },
+        type: { type: String, default: 'image' },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     notes: { type: String },
   },
   { timestamps: true },

@@ -11,29 +11,35 @@ import Medication from '../medication/medication.model';
 export const createPatientService = async (
   payload: INewPatient,
 ): Promise<INewPatient> => {
-  const { dateOfBirth } = payload;
-  const age = getAgeInYears(dateOfBirth);
+  const { dob } = payload;
+  const age = getAgeInYears(dob as unknown as string);
   payload.age = age;
-  payload.patientIdMrn = `MRN-${random(5, 'numeric')}`;
+  if (!payload.patientIdMrn) {
+    payload.patientIdMrn = `MRN-${random(5, 'numeric')}`;
+  }
   const patient = new Patient(payload);
   return patient.save() as unknown as INewPatient;
 };
 
-// ─── Get All (with optional facility filter + pagination) ────────────────────
+// ─── Get All (with optional organization filter + pagination) ────────────────────
 
 export const getAllPatientsService = async (
   page = 1,
   limit = 10,
   searchTerm?: string,
+  organizationId?: string,
 ) => {
   const filter: any = {};
+
+  if (organizationId) {
+    filter.organizationId = organizationId;
+  }
 
   if (searchTerm) {
     const searchableFields = [
       'firstName',
       'lastName',
       'patientIdMrn',
-      'phoneNumber',
     ];
     filter.$or = searchableFields.map(field => ({
       [field]: { $regex: searchTerm, $options: 'i' },
@@ -50,8 +56,12 @@ export const getAllPatientsService = async (
 
 // ─── Get Single ───────────────────────────────────────────────────────────────
 
-export const getPatientByIdService = async (id: string) => {
-  const patient = await Patient.findById(id).lean();
+export const getPatientByIdService = async (id: string, organizationId?: string) => {
+  const query: any = { _id: id };
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
+  const patient = await Patient.findOne(query).lean();
   if (!patient) throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found');
   const findMedication = await Medication.find({
     patientId: id,
@@ -64,13 +74,18 @@ export const getPatientByIdService = async (id: string) => {
 export const updatePatientService = async (
   id: string,
   payload: Partial<INewPatient>,
+  organizationId?: string,
 ): Promise<INewPatient> => {
-  const { dateOfBirth } = payload;
-  if (dateOfBirth) {
-    payload.age = getAgeInYears(dateOfBirth as string);
+  const { dob } = payload;
+  if (dob) {
+    payload.age = getAgeInYears(dob as unknown as string);
   }
-  const patient = await Patient.findByIdAndUpdate(
-    id,
+  const query: any = { _id: id };
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
+  const patient = await Patient.findOneAndUpdate(
+    query,
     { $set: payload },
     { new: true, runValidators: true },
   ).lean();
@@ -80,7 +95,11 @@ export const updatePatientService = async (
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
-export const deletePatientService = async (id: string): Promise<void> => {
-  const result = await Patient.findByIdAndDelete(id);
+export const deletePatientService = async (id: string, organizationId?: string): Promise<void> => {
+  const query: any = { _id: id };
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
+  const result = await Patient.findOneAndDelete(query);
   if (!result) throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found');
 };

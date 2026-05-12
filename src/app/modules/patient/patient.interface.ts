@@ -1,26 +1,36 @@
 /* eslint-disable no-unused-vars */
+import { Types } from 'mongoose';
 import { PartialStatus } from '../../../enums/user';
 
-export enum Gender {
+export enum Sex {
   MALE = 'Male',
   FEMALE = 'Female',
-  OTHERS = "Other's",
+}
+
+export enum LifeExpectancy {
+  SIX_DAYS = '0-6 days',
+  FOUR_WEEKS = '1-4 weeks',
+  THREE_MONTHS = '1-3 months',
+  SIX_MONTHS = '4-6 months',
+  GREATER_THAN_SIX_MONTHS = '>6 months',
 }
 
 export interface INewPatient {
-  // Personal Information Section
+  organizationId: Types.ObjectId;
   firstName: string;
   lastName: string;
-  mrn_id?: string;
-  patientIdMrn: string;
-  dateOfBirth: string; // Typically handled as ISO string (YYYY-MM-DD)
-  age?: number; // Optional as it lacks a red asterisk
-  gender: Gender;
-  phoneNumber: string;
-  medicationAllergies: string;
+  patientIdMrn?: string;
+  dob: Date;
+  age?: number;
+  sex: Sex;
+  medicationAllergies: any;
+  allergies: {
+    medicationId: Types.ObjectId;
+    reaction: string;
+  }[];
   status: PartialStatus;
-
-  // Admission Information Section
-  admissionDate: string;
+  admissionDate: Date;
+  lifeExpectancy: LifeExpectancy;
   notes?: string;
+  patientUploads?: { url: string; type: string; uploadedAt: Date }[];
 }
