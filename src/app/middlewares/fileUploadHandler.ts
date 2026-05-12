@@ -25,6 +25,8 @@ const fileUploadHandler = () => {
       let uploadDir;
       switch (file.fieldname) {
         case 'image':
+        case 'files':
+        case 'files[]':
           uploadDir = path.join(baseUploadDir, 'image');
           break;
         case 'media':
@@ -55,7 +57,12 @@ const fileUploadHandler = () => {
 
   //file filter
   const filterFilter = (req: Request, file: any, cb: FileFilterCallback) => {
-    if (file.fieldname === 'image' || file.fieldname === 'doc') {
+    if (
+      file.fieldname === 'image' ||
+      file.fieldname === 'doc' ||
+      file.fieldname === 'files' ||
+      file.fieldname === 'files[]'
+    ) {
       if (
         file.mimetype === 'image/jpeg' ||
         file.mimetype === 'image/png' ||
@@ -86,23 +93,6 @@ const fileUploadHandler = () => {
           )
         );
       }
-    } else if (file.fieldname === 'doc') {
-      if (
-        file.mimetype === 'application/pdf' ||
-        file.mimetype === 'application/msword' ||
-        file.mimetype ===
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        file.mimetype === 'text/plain'
-      ) {
-        cb(null, true);
-      } else {
-        cb(
-          new ApiError(
-            StatusCodes.BAD_REQUEST,
-            'Only .pdf, .doc, .docx, and .txt files are supported'
-          )
-        );
-      }
     } else {
       cb(new ApiError(StatusCodes.BAD_REQUEST, 'This file is not supported'));
     }
@@ -112,9 +102,11 @@ const fileUploadHandler = () => {
     storage: storage,
     fileFilter: filterFilter,
   }).fields([
-    { name: 'image', maxCount: 3 },
+    { name: 'image', maxCount: 10 },
     { name: 'media', maxCount: 3 },
-    { name: 'doc', maxCount: 3 },
+    { name: 'doc', maxCount: 10 },
+    { name: 'files', maxCount: 10 },
+    { name: 'files[]', maxCount: 10 },
   ]);
   return upload;
 };

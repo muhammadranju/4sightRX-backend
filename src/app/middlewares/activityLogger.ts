@@ -22,7 +22,7 @@ const activityLogger = () => {
                 if (actionDescription) {
                   await Activity.create({
                     user: userData._id,
-                    name: userData.name,
+                    name: `${userData.firstName} ${userData.lastName}`,
                     specialization: userData.specialty || 'N/A',
                     action: actionDescription,
                   });
