@@ -24,4 +24,9 @@ export default {
     email: process.env.SUPER_ADMIN_EMAIL,
     password: process.env.SUPER_ADMIN_PASSWORD,
   },
+  analytics: {
+    avgNurseSalary: Number(process.env.AVG_NURSE_SALARY) || 45, // Default $45/hr
+    avgAdmissionTimeBefore: Number(process.env.AVG_ADMISSION_TIME_BEFORE) || 120, // 2 hours
+    avgAdmissionTimeAfter: Number(process.env.AVG_ADMISSION_TIME_AFTER) || 30, // 30 mins
+  },
 };

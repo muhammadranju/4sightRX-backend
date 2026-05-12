@@ -8,6 +8,9 @@ import formularyComparisonRoutes from '../app/modules/formulary-comparison/formu
 import analyticsRoutes from '../app/modules/analytics/analytics.route';
 import activityLogger from '../app/middlewares/activityLogger';
 import { FacilityRoute } from '../app/modules/facility/facility.route';
+import { OrganizationRoutes } from '../app/modules/organization/organization.route';
+import { AllergyRoutes } from '../app/modules/allergy/allergy.route';
+import { FormularyRoutes } from '../app/modules/formulary/formulary.route';
 const router = express.Router();
 
 const apiRoutes = [
@@ -19,6 +22,9 @@ const apiRoutes = [
   { path: '/formulary-comparison', route: formularyComparisonRoutes },
   { path: '/analytics', route: analyticsRoutes },
   { path: '/facility', route: FacilityRoute },
+  { path: '/organizations', route: OrganizationRoutes },
+  { path: '/allergies', route: AllergyRoutes },
+  { path: '/formulary', route: FormularyRoutes },
 ];
 
 router.use(activityLogger());
