@@ -12,7 +12,12 @@ import {
 } from './medication.service';
 
 const bulkCreate = catchAsync(async (req: Request, res: Response) => {
-  const data = await bulkCreateMedicationsService(req.body.medications);
+  const user = req.user;
+  const medications = req.body.medications.map((med: any) => ({
+    ...med,
+    organizationId: user.organizationId,
+  }));
+  const data = await bulkCreateMedicationsService(medications);
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
@@ -22,11 +27,12 @@ const bulkCreate = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMedications = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
   const search = req.query.search as string;
 
-  const result = await getMedicationsService(limit, page, search);
+  const result = await getMedicationsService(limit, page, search, user.organizationId);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -42,7 +48,8 @@ const getMedications = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMedicationById = catchAsync(async (req: Request, res: Response) => {
-  const result = await getMedicationByIdService(req.params.id as string);
+  const user = req.user;
+  const result = await getMedicationByIdService(req.params.id as string, user.organizationId);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -52,7 +59,8 @@ const getMedicationById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateMedication = catchAsync(async (req: Request, res: Response) => {
-  const data = await updateMedicationService(req.params.id as string, req.body);
+  const user = req.user;
+  const data = await updateMedicationService(req.params.id as string, req.body, user.organizationId);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -62,7 +70,8 @@ const updateMedication = catchAsync(async (req: Request, res: Response) => {
 });
 
 const deleteMedication = catchAsync(async (req: Request, res: Response) => {
-  await deleteMedicationService(req.params.id as string);
+  const user = req.user;
+  await deleteMedicationService(req.params.id as string, user.organizationId);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -72,7 +81,11 @@ const deleteMedication = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createMedication = catchAsync(async (req: Request, res: Response) => {
-  const data = await createMedicationService(req.body);
+  const user = req.user;
+  const data = await createMedicationService({
+    ...req.body,
+    organizationId: user.organizationId,
+  });
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,

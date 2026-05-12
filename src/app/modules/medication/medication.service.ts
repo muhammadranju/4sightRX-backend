@@ -6,6 +6,8 @@ import Medication from './medication.model';
 
 // ─── Bulk Insert ──────────────────────────────────────────────────────────────
 
+// ─── Bulk Insert ──────────────────────────────────────────────────────────────
+
 export const createMedicationService = async (
   medication: IMedication,
 ): Promise<IMedication> => {
@@ -27,12 +29,13 @@ export const bulkCreateMedicationsService = async (
   return created as unknown as IMedication[];
 };
 
-// ─── Get by Session ───────────────────────────────────────────────────────────
+// ─── Get All ───────────────────────────────────────────────────────────
 
 export const getMedicationsService = async (
   limit: number,
   page: number,
   search: string,
+  organizationId?: string,
 ): Promise<{
   data: IMedication[];
   total: number;
@@ -40,6 +43,9 @@ export const getMedicationsService = async (
   limit: number;
 }> => {
   const query: any = {};
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
   if (search) {
     query.medicationName = { $regex: search, $options: 'i' };
   }
@@ -61,18 +67,24 @@ export const getMedicationsService = async (
   };
 };
 
-// ─── Get by Patient ───────────────────────────────────────────────────────────
+// ─── Get by ID ───────────────────────────────────────────────────────────
 
 export const getMedicationByIdService = async (
   id: string,
+  organizationId?: string,
 ): Promise<{
-  data: IMedication[];
+  data: IMedication;
 }> => {
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid medication ID');
   }
-  const data = await Medication.findById(id).sort({ createdAt: -1 }).lean();
-  return { data: data as unknown as IMedication[] };
+  const query: any = { _id: id };
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
+  const data = await Medication.findOne(query).lean();
+  if (!data) throw new ApiError(StatusCodes.NOT_FOUND, 'Medication not found');
+  return { data: data as unknown as IMedication };
 };
 
 // ─── Update ───────────────────────────────────────────────────────────────────
@@ -80,12 +92,17 @@ export const getMedicationByIdService = async (
 export const updateMedicationService = async (
   id: string,
   payload: Partial<IMedication>,
+  organizationId?: string,
 ): Promise<IMedication> => {
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid medication ID');
   }
-  const med = await Medication.findByIdAndUpdate(
-    id,
+  const query: any = { _id: id };
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
+  const med = await Medication.findOneAndUpdate(
+    query,
     { $set: payload },
     { new: true, runValidators: true },
   ).lean();
@@ -95,11 +112,15 @@ export const updateMedicationService = async (
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
-export const deleteMedicationService = async (id: string): Promise<void> => {
+export const deleteMedicationService = async (id: string, organizationId?: string): Promise<void> => {
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid medication ID');
   }
-  const result = await Medication.findByIdAndDelete(id);
+  const query: any = { _id: id };
+  if (organizationId) {
+    query.organizationId = organizationId;
+  }
+  const result = await Medication.findOneAndDelete(query);
   if (!result)
     throw new ApiError(StatusCodes.NOT_FOUND, 'Medication not found');
 };

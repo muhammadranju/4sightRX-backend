@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { Types } from 'mongoose';
 
 export enum MedicationRoute {
@@ -27,15 +28,17 @@ export enum MedicationFrequency {
 export type MedicationSource = 'manual' | 'ocr' | 'pdf';
 
 export interface IMedication {
+  organizationId: Types.ObjectId;
   patientId: Types.ObjectId;
   sessionId: string;
   medicationName: string;
   strength: string;
   form: string;
   dose: string;
-  route: MedicationRoute;
-  frequency: MedicationFrequency;
+  route: string; // Use string to allow flexible input from OCR
+  frequency: string; // Use string to allow flexible input from OCR
   source: MedicationSource;
   duration?: string;
   additionalInstructions?: string;
+  status: 'pending' | 'extracted' | 'verified';
 }

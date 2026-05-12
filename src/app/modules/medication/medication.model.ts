@@ -3,10 +3,14 @@ import { IMedication } from './medication.interface';
 
 const medicationSchema = new Schema<IMedication>(
   {
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+    },
     patientId: {
       type: Schema.Types.ObjectId,
       ref: 'Patient',
-      // required: [true, 'Patient ID is required'],
     },
 
     medicationName: {
@@ -40,11 +44,16 @@ const medicationSchema = new Schema<IMedication>(
     },
     source: {
       type: String,
-      enum: ['manual', 'ocr'],
+      enum: ['manual', 'ocr', 'pdf'],
       // required: [true, 'Source is required'],
       default: 'manual',
     },
     duration: { type: String },
+    status: {
+      type: String,
+      enum: ['pending', 'extracted', 'verified'],
+      default: 'pending',
+    },
     additionalInstructions: { type: String },
   },
   { timestamps: true },
