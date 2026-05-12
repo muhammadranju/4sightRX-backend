@@ -45,4 +45,10 @@ router
     auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
     UserController.updateStatus,
   );
+
+router.delete(
+  '/:id',
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  UserController.deleteUser,
+);
 export const UserRoutes = router;

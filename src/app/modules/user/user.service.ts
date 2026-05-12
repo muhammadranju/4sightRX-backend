@@ -69,7 +69,12 @@ const getAllUsersFromDB = async (
       $addFields: {
         organizationId: {
           $cond: {
-            if: { $and: [{ $gt: ['$organizationId', null] }, { $eq: [{ $type: '$organizationId' }, 'string'] }] },
+            if: {
+              $and: [
+                { $gt: ['$organizationId', null] },
+                { $eq: [{ $type: '$organizationId' }, 'string'] },
+              ],
+            },
             then: { $toObjectId: '$organizationId' },
             else: '$organizationId',
           },
@@ -146,10 +151,22 @@ const updateStatusToDB = async (id: string, status: string) => {
   return updateDoc;
 };
 
+const deleteUserFromDB = async (id: string) => {
+  const isExistUser = await User.isExistUserById(id);
+  if (!isExistUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
+  }
+
+  const deleteDoc = await User.deleteOne({ _id: id });
+
+  return deleteDoc;
+};
+
 export const UserService = {
   createUserToDB,
   getUserProfileFromDB,
   updateProfileToDB,
   getAllUsersFromDB,
   updateStatusToDB,
+  deleteUserFromDB,
 };

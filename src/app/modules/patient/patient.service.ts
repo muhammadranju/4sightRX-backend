@@ -36,11 +36,7 @@ export const getAllPatientsService = async (
   }
 
   if (searchTerm) {
-    const searchableFields = [
-      'firstName',
-      'lastName',
-      'patientIdMrn',
-    ];
+    const searchableFields = ['firstName', 'lastName', 'patientIdMrn'];
     filter.$or = searchableFields.map(field => ({
       [field]: { $regex: searchTerm, $options: 'i' },
     }));
@@ -48,7 +44,12 @@ export const getAllPatientsService = async (
 
   const skip = (page - 1) * limit;
   const [data, total] = await Promise.all([
-    Patient.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Patient.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .populate('organizationId', '-__v -updatedAt'),
     Patient.countDocuments(filter),
   ]);
   return { data: data as unknown as INewPatient[], total, page, limit };
@@ -56,7 +57,10 @@ export const getAllPatientsService = async (
 
 // ─── Get Single ───────────────────────────────────────────────────────────────
 
-export const getPatientByIdService = async (id: string, organizationId?: string) => {
+export const getPatientByIdService = async (
+  id: string,
+  organizationId?: string,
+) => {
   const query: any = { _id: id };
   if (organizationId) {
     query.organizationId = organizationId;
@@ -95,7 +99,10 @@ export const updatePatientService = async (
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
-export const deletePatientService = async (id: string, organizationId?: string): Promise<void> => {
+export const deletePatientService = async (
+  id: string,
+  organizationId?: string,
+): Promise<void> => {
   const query: any = { _id: id };
   if (organizationId) {
     query.organizationId = organizationId;
