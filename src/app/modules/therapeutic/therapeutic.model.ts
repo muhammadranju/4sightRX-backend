@@ -3,9 +3,9 @@ import { ITherapeutic } from './therapeutic.interface';
 
 const therapeuticSchema = new Schema<ITherapeutic>(
   {
-    agencyId: {
+    organizationId: {
       type: Schema.Types.ObjectId,
-      ref: 'Facility',
+      ref: 'Organization',
       index: true,
     },
     // Stored lowercase for case-insensitive matching in queries

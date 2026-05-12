@@ -3,13 +3,14 @@ import { z } from 'zod';
 const createUserZodSchema = z.object({
   body: z.object({
     // user: z.object({
-    name: z.string({ message: 'Name is required' }),
-    agencyId: z.string({ message: 'Agency ID is required' }),
-    // contact: z.string({ message: 'Contact is required' }),
+    firstName: z.string({ message: 'First Name is required' }),
+    lastName: z.string({ message: 'Last Name is required' }),
+    organizationId: z.string({ message: 'Organization ID is required' }),
     email: z.string({ message: 'Email is required' }),
     password: z.string({ message: 'Password is required' }),
-    // location: z.string({ message: 'Location is required' }),
-    // }),
+    specialty: z.string().optional(),
+    // facility: z.string().optional(),
+    // hospitalName: z.string().optional(),
   }),
 });
 

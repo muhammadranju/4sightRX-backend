@@ -1,14 +1,15 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 import { Model, Types } from 'mongoose';
 import { USER_ROLES } from '../../../enums/user';
 
 export type IUser = {
-  name: string;
+  firstName: string;
+  lastName: string;
   role: USER_ROLES;
-  contact: string;
   email: string;
   password: string;
-  location: string;
-  agencyId: Types.ObjectId;
+  organizationId: Types.ObjectId;
   image?: string;
   status: 'active' | 'blocked';
   verified: boolean;

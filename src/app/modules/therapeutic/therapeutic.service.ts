@@ -17,7 +17,7 @@ export const createTherapeuticService = async (
 export const getAllTherapeuticsService = async (
   page = 1,
   limit = 10,
-  agencyId?: string,
+  organizationId?: string,
 ): Promise<{
   data: ITherapeutic[];
   total: number;
@@ -25,13 +25,13 @@ export const getAllTherapeuticsService = async (
   limit: number;
 }> => {
   const filter: any = {};
-  if (agencyId) {
-    filter.agencyId = agencyId;
+  if (organizationId) {
+    filter.organizationId = organizationId;
   }
   const skip = (page - 1) * limit;
   const [data, total] = await Promise.all([
     Therapeutic.find(filter)
-      .populate('agencyId')
+      .populate('organizationId')
       .sort({ drugName: 1 })
       .skip(skip)
       .limit(limit)
@@ -45,11 +45,11 @@ export const getAllTherapeuticsService = async (
 
 export const getTherapeuticByDrugNameService = async (
   drugName: string,
-  agencyId?: string,
+  organizationId?: string,
 ): Promise<ITherapeutic> => {
   const query: any = { drugName: drugName.toLowerCase() };
-  if (agencyId) {
-    query.agencyId = agencyId;
+  if (organizationId) {
+    query.organizationId = organizationId;
   }
   const doc = await Therapeutic.findOne(query).lean();
   if (!doc)

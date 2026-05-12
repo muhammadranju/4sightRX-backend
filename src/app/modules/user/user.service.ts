@@ -58,41 +58,33 @@ const getAllUsersFromDB = async (
   page = 1,
   limit = 10,
   searchTerm?: string,
-  agencyId?: string,
+  organizationId?: string,
   sortBy?: string,
   sortOrder: 'asc' | 'desc' = 'desc',
 ) => {
   const skip = (page - 1) * limit;
 
-  // 1. Initial pipeline with type conversion for agencyId to ensure lookup works
   const pipeline: any[] = [
     {
       $addFields: {
-        // Convert to ObjectId if it's a string, handle null/missing cases
-        agencyId: {
+        organizationId: {
           $cond: {
-            if: { $and: [{ $gt: ['$agencyId', null] }, { $eq: [{ $type: '$agencyId' }, 'string'] }] },
-            then: { $toObjectId: '$agencyId' },
-            else: '$agencyId',
+            if: { $and: [{ $gt: ['$organizationId', null] }, { $eq: [{ $type: '$organizationId' }, 'string'] }] },
+            then: { $toObjectId: '$organizationId' },
+            else: '$organizationId',
           },
         },
       },
     },
     {
       $lookup: {
-        from: 'facilities',
-        localField: 'agencyId',
+        from: 'organizations',
+        localField: 'organizationId',
         foreignField: '_id',
-        as: 'agency',
+        as: 'organization',
       },
     },
-    { $unwind: { path: '$agency', preserveNullAndEmptyArrays: true } },
-    {
-      $addFields: {
-        // Map facilityName to name as requested by frontend
-        'agency.name': '$agency.facilityName',
-      },
-    },
+    { $unwind: { path: '$organization', preserveNullAndEmptyArrays: true } },
   ];
 
   const match: any = {};
@@ -103,16 +95,15 @@ const getAllUsersFromDB = async (
       'role',
       'hospitalName',
       'specialty',
-      'agency.facilityName',
-      'agency.name',
+      'organization.name',
     ];
     match.$or = searchableFields.map(field => ({
       [field]: { $regex: searchTerm, $options: 'i' },
     }));
   }
 
-  if (agencyId) {
-    match.agencyId = new mongoose.Types.ObjectId(agencyId);
+  if (organizationId) {
+    match.organizationId = new mongoose.Types.ObjectId(organizationId);
   }
 
   if (Object.keys(match).length > 0) {
@@ -121,8 +112,8 @@ const getAllUsersFromDB = async (
 
   // Sorting logic
   const sortStage: any = {};
-  if (sortBy === 'agencyName') {
-    sortStage['agency.facilityName'] = sortOrder === 'asc' ? 1 : -1;
+  if (sortBy === 'organizationName') {
+    sortStage['organization.name'] = sortOrder === 'asc' ? 1 : -1;
   } else {
     sortStage[sortBy || 'createdAt'] = sortOrder === 'asc' ? 1 : -1;
   }

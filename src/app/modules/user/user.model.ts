@@ -8,13 +8,17 @@ import { IUser, UserModal } from './user.interface';
 
 const userSchema = new Schema<IUser, UserModal>(
   {
-    name: {
+    firstName: {
       type: String,
       required: true,
     },
-    agencyId: {
+    lastName: {
+      type: String,
+      required: true,
+    },
+    organizationId: {
       type: Schema.Types.ObjectId,
-      ref: 'Facility',
+      ref: 'Organization',
       required: true,
       index: true,
     },
@@ -103,7 +107,7 @@ const userSchema = new Schema<IUser, UserModal>(
 
 //exist user check
 userSchema.statics.isExistUserById = async (id: string) => {
-  const isExist = await User.findById(id).populate('agencyId');
+  const isExist = await User.findById(id).populate('organizationId');
   return isExist;
 };
 

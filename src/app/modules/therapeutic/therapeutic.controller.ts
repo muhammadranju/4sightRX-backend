@@ -13,8 +13,8 @@ import {
 
 const createTherapeutic = catchAsync(async (req: Request, res: Response) => {
   const data = req.body;
-  if (!data.agencyId && req.user.role !== USER_ROLES.SUPER_ADMIN) {
-    data.agencyId = req.user.agencyId;
+  if (!data.organizationId && req.user.role !== USER_ROLES.SUPER_ADMIN) {
+    data.organizationId = req.user.organizationId;
   }
   const result = await createTherapeuticService(data);
   sendResponse(res, {
@@ -29,12 +29,12 @@ const getAllTherapeutics = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
 
-  let agencyId = req.query.agencyId as string;
+  let organizationId = req.query.organizationId as string;
   if (req.user.role !== USER_ROLES.SUPER_ADMIN) {
-    agencyId = req.user.agencyId;
+    organizationId = req.user.organizationId;
   }
 
-  const result = await getAllTherapeuticsService(page, limit, agencyId);
+  const result = await getAllTherapeuticsService(page, limit, organizationId);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -50,14 +50,14 @@ const getAllTherapeutics = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getByDrugName = catchAsync(async (req: Request, res: Response) => {
-  let agencyId = req.query.agencyId as string;
+  let organizationId = req.query.organizationId as string;
   if (req.user.role !== USER_ROLES.SUPER_ADMIN) {
-    agencyId = req.user.agencyId;
+    organizationId = req.user.organizationId;
   }
 
   const data = await getTherapeuticByDrugNameService(
     req.params.drugName as string,
-    agencyId,
+    organizationId,
   );
   sendResponse(res, {
     statusCode: StatusCodes.OK,
