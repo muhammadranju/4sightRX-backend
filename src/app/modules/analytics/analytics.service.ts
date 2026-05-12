@@ -1,10 +1,11 @@
+import mongoose from 'mongoose';
+import config from '../../../config';
+import getRelativeTime from '../../../util/relativeTime';
+import { Activity } from '../activity/activity.model';
 import FormularyComparison from '../formulary-comparison/formularyComparison.model';
 import FormularyInterchange from '../formulary-comparison/formularyInterchange.model';
 import Patient from '../patient/patient.model';
 import { User } from '../user/user.model';
-import { Activity } from '../activity/activity.model';
-import getRelativeTime from '../../../util/relativeTime';
-import config from '../../../config';
 
 const getAppAnalyticsFromDB = async (organizationId?: string) => {
   const query: any = { status: 'ACTIVE' };
@@ -24,7 +25,9 @@ const getAppAnalyticsFromDB = async (organizationId?: string) => {
     action: 'accepted',
     createdAt: { $gte: startOfMonth },
   };
-  if (organizationId) match.organizationId = organizationId;
+  if (organizationId) {
+    match.organizationId = new mongoose.Types.ObjectId(organizationId);
+  }
 
   const monthlySavingsResult = await FormularyComparison.aggregate([
     {
@@ -63,7 +66,9 @@ const getDashboardAnalyticsFromDB = async (organizationId?: string) => {
   const totalActivePatients = await Patient.countDocuments(patientQuery);
 
   const match: any = { action: 'accepted' };
-  if (organizationId) match.organizationId = organizationId;
+  if (organizationId) {
+    match.organizationId = new mongoose.Types.ObjectId(organizationId);
+  }
 
   const totalCostSavingsResult = await FormularyComparison.aggregate([
     {
@@ -100,7 +105,9 @@ const getMonthlySavingCostFromDB = async (organizationId?: string) => {
   ];
 
   const match: any = { action: 'accepted' };
-  if (organizationId) match.organizationId = organizationId;
+  if (organizationId) {
+    match.organizationId = new mongoose.Types.ObjectId(organizationId);
+  }
 
   const result = await FormularyComparison.aggregate([
     {
@@ -135,12 +142,14 @@ const getOrganizationSavingsMetrics = async (organizationId: string) => {
   startOfMonth.setHours(0, 0, 0, 0);
   startOfMonth.setDate(1);
 
+  const orgId = organizationId ? new mongoose.Types.ObjectId(organizationId) : null;
+
   // Total Monthly Savings
   const match: any = {
     action: 'accepted',
     createdAt: { $gte: startOfMonth },
-    organizationId,
   };
+  if (orgId) match.organizationId = orgId;
 
   const monthlySavingsResult = await FormularyComparison.aggregate([
     { $match: match },
@@ -155,12 +164,17 @@ const getOrganizationSavingsMetrics = async (organizationId: string) => {
   const totalMonthlySavings = monthlySavingsResult[0]?.totalSavings || 0;
 
   // Monthly Medication Savings (totalSavings / numberOfPatients)
-  const patientCount = await Patient.countDocuments({ organizationId });
+  // We use active patients for a more accurate per-patient saving metric
+  const patientCount = await Patient.countDocuments({ 
+    organizationId: orgId, 
+    status: 'ACTIVE' 
+  });
+  
   const monthlyMedicationSavings = patientCount > 0 ? totalMonthlySavings / patientCount : 0;
 
   // Operational Cost Savings
   const patientsAdmitted = await Patient.countDocuments({
-    organizationId,
+    organizationId: orgId,
     admissionDate: { $gte: startOfMonth },
   });
 
