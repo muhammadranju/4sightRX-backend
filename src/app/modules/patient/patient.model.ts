@@ -33,6 +33,14 @@ const patientSchema = new Schema<INewPatient>(
       enum: Object.values(Sex),
       required: [true, 'Sex is required'],
     },
+    hospiceAdmittingDiagnosis: {
+      type: String,
+      trim: true,
+    },
+    primarySymptoms: {
+      type: [String],
+      trim: true,
+    },
     allergies: [
       {
         allergyId: {

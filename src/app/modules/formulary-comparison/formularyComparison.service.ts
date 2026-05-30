@@ -9,9 +9,9 @@ import {
 import FormularyComparison from './formularyComparison.model';
 import { AnalyzeInput } from './formularyComparison.validation';
 import FormularyInterchange from './formularyInterchange.model';
-import { callGeminiAI, IGeminiPromptInput } from './gemini.service';
 import { generateFormularyPDF } from './formularyComparison.utils';
 import { nanoid } from 'nanoid';
+import { RecommendationEngine } from '../formulary/recommendationEngine.service';
 
 export interface IFormularyComparisonSummary {
   continuedMedications: IFormularyComparison[]; // All medicines user accepted
@@ -33,6 +33,7 @@ export const analyzeFormularyService = async (
 ): Promise<IFormularyComparison[]> => {
   const { medicationIds } = input;
   const sessionId = nanoid(); // Generate a unique ID for this session
+  const recommendationEngine = new RecommendationEngine();
 
   // ── Fetch all medications in one query ─────────────────────────────────────
   const validIds = medicationIds.filter(id => mongoose.isValidObjectId(id));
@@ -40,7 +41,10 @@ export const analyzeFormularyService = async (
     throw new Error('No valid medication IDs provided');
   }
 
-  const medications = await Medication.find({ _id: { $in: validIds }, organizationId }).lean();
+  const medications = await Medication.find({
+    _id: { $in: validIds },
+    organizationId,
+  }).lean();
 
   if (medications.length === 0) {
     throw new Error('No medications found for the provided IDs');
@@ -49,23 +53,12 @@ export const analyzeFormularyService = async (
   // ── Process each medication in parallel ───────────────────────────────────
   const results = await Promise.all(
     medications.map(async medication => {
-      const nameKey = medication.medicationName.toLowerCase();
-
-      // 1. Therapeutic alternative lookup via new drugName field (stored lowercase)
-      // Now filtered by organizationId to ensure organization-specific formulary
-      const therapeutic = await Therapeutic.findOne({
-        drugName: nameKey,
-        organizationId: organizationId,
-      }).lean();
-
-      // 2. Build prompt input
-      const promptInput: IGeminiPromptInput = {
-        currentMedication: `${medication.medicationName} ${medication.strength} — ${medication.dose} ${medication.frequency}`,
-        therapeuticAlternative: therapeutic ? therapeutic.alternative : null,
-      };
-
-      // 4. Call Gemini AI (or fallback if Gemini is unavailable)
-      const aiResponse = await callGeminiAI(promptInput);
+      // Use our new deterministic recommendation engine instead of Gemini
+      const recommendation = await recommendationEngine.generateRecommendation(
+        medication.medicationName,
+        medication.strength,
+        medication.route,
+      );
 
       // 5. Persist recommendation using new+save for correct Mongoose v9 typing
       const doc = new FormularyComparison({
@@ -74,10 +67,10 @@ export const analyzeFormularyService = async (
         patientId,
         sessionId, // Attach the session ID
         currentMedication: medication.medicationName,
-        recommendedMedication: aiResponse.recommendedMedication,
-        rationale: aiResponse.rationale,
-        estimatedSavings: aiResponse.estimatedSavings,
-        hospiceCovered: aiResponse.hospiceCovered,
+        recommendedMedication: recommendation.recommendedMedication,
+        rationale: recommendation.rationale,
+        estimatedSavings: recommendation.estimatedSavings,
+        hospiceCovered: recommendation.hospiceCovered,
         // action: 'pending',
       });
       const comparison = await doc.save();

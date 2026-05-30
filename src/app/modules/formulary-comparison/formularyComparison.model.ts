@@ -26,7 +26,7 @@ const formularyComparisonSchema = new Schema<IFormularyComparison>(
     },
     recommendedMedication: {
       type: String,
-      required: [true, 'Recommended medication is required'],
+      // required: [true, 'Recommended medication is required'],
       trim: true,
     },
     rationale: {

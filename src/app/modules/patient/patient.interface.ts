@@ -24,6 +24,8 @@ export interface INewPatient {
   age?: number;
   sex: Sex;
   medicationAllergies: any;
+  hospiceAdmittingDiagnosis?: string;
+  primarySymptoms?: string;
   allergies: {
     medicationId: Types.ObjectId;
     reaction: string;
