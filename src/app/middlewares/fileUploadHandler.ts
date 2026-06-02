@@ -71,14 +71,17 @@ const fileUploadHandler = () => {
         file.mimetype === 'application/msword' ||
         file.mimetype ===
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        file.mimetype === 'text/plain'
+        file.mimetype === 'text/plain' ||
+        file.mimetype === 'text/csv' ||
+        file.mimetype === 'application/vnd.ms-excel' ||
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       ) {
         cb(null, true);
       } else {
         cb(
           new ApiError(
             StatusCodes.BAD_REQUEST,
-            'Unsupported file type. Supported: .jpeg, .png, .jpg, .pdf, .doc, .docx, .txt'
+            'Unsupported file type. Supported: .jpeg, .png, .jpg, .pdf, .doc, .docx, .txt, .csv, .xls, .xlsx'
           )
         );
       }

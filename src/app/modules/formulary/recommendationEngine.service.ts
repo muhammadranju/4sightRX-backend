@@ -3,33 +3,7 @@ import {
   callGeminiAI,
   IGeminiPromptInput,
 } from '../formulary-comparison/gemini.service';
-
-interface FormularyEntry {
-  tier?: string;
-  Tier?: string;
-  generic?: string;
-  Generic?: string;
-  brand?: string;
-  Brand?: string;
-  strength_form?: string;
-  Strength_Form?: string;
-  route?: string;
-  Route?: string;
-  typical_dose?: string;
-  Typical_Dose?: string;
-  frequency?: string;
-  Frequency?: string;
-  unit_cost?: string;
-  Unit_Cost?: string;
-  estimated_30_day_cost?: string;
-  Estimated_30_Day_Cost?: string;
-  primary_alternative?: string;
-  Primary_Alternative?: string;
-  secondary_alternative?: string;
-  Secondary_Alternative?: string;
-  clinical_considerations?: string;
-  Clinical_Considerations?: string;
-}
+import { IMedicationTier } from '../medicationTier/medicationTier.interface';
 
 export type RecommendationType =
   | 'CONTINUE'
@@ -80,14 +54,12 @@ export class RecommendationEngine {
     }
 
     const { entry, category, confidence, matchType } = match;
-    const genericName = entry.generic || entry.Generic || medicationName;
-    const brandName = entry.brand || entry.Brand;
+    const genericName = entry.medication || medicationName;
+    const brandName = entry.brandName;
     const fullMedName = brandName
       ? `${genericName} (${brandName})`
       : genericName;
-    const estimatedSavings = this.parseCost(
-      entry.estimated_30_day_cost || entry.Estimated_30_Day_Cost,
-    );
+    const estimatedSavings = entry.monthlyCost || null;
 
     switch (category) {
       case 'preferred':
@@ -124,23 +96,6 @@ export class RecommendationEngine {
           route,
         );
     }
-  }
-
-  private parseCost(costStr: string | undefined): number | null {
-    if (
-      !costStr ||
-      costStr === 'N/A' ||
-      costStr === '—' ||
-      costStr === 'Variable'
-    ) {
-      return null;
-    }
-    const match = costStr.match(/\$?([\d,.]+)/);
-    if (match) {
-      const num = parseFloat(match[1].replace(/,/g, ''));
-      return isNaN(num) ? null : num;
-    }
-    return null;
   }
 
   private async generateAIFallbackRecommendation(
@@ -186,14 +141,11 @@ export class RecommendationEngine {
 
   private generateContinueRecommendation(
     medicationName: string,
-    entry: FormularyEntry,
+    entry: IMedicationTier,
     confidence: number,
     matchType: string,
     estimatedSavings: number | null,
   ): RecommendationResult {
-    const clinicalConsiderations =
-      entry.clinical_considerations || entry.Clinical_Considerations;
-
     return {
       recommendationType: 'CONTINUE',
       currentMedication: medicationName,
@@ -203,7 +155,6 @@ export class RecommendationEngine {
       hospiceCovered: true,
       matchConfidence: confidence,
       matchType,
-      clinicalConsiderations,
       reviewRequired: false,
       source: 'Formulary Database',
     };
@@ -211,17 +162,12 @@ export class RecommendationEngine {
 
   private generateInterchangeRecommendation(
     medicationName: string,
-    entry: FormularyEntry,
+    entry: IMedicationTier,
     confidence: number,
     matchType: string,
     estimatedSavings: number | null,
   ): RecommendationResult {
-    const primaryAlternative =
-      entry.primary_alternative || entry.Primary_Alternative;
-    const secondaryAlternative =
-      entry.secondary_alternative || entry.Secondary_Alternative;
-    const clinicalConsiderations =
-      entry.clinical_considerations || entry.Clinical_Considerations;
+    const primaryAlternative = entry.preferredAlternative;
 
     let rationale =
       'This medication is non-formulary. Consider therapeutic interchange.';
@@ -232,9 +178,6 @@ export class RecommendationEngine {
     ) {
       rationale += ` Recommended alternative: ${primaryAlternative}`;
     }
-    if (clinicalConsiderations) {
-      rationale += ` ${clinicalConsiderations}`;
-    }
 
     return {
       recommendationType: 'INTERCHANGE',
@@ -244,13 +187,12 @@ export class RecommendationEngine {
         primaryAlternative !== 'N/A' &&
         primaryAlternative !== '—'
           ? primaryAlternative
-          : secondaryAlternative,
+          : undefined,
       rationale,
       estimatedSavings: estimatedSavings || undefined,
       hospiceCovered: false,
       matchConfidence: confidence,
       matchType,
-      clinicalConsiderations,
       reviewRequired: true,
       source: 'Formulary Database',
     };
@@ -258,19 +200,13 @@ export class RecommendationEngine {
 
   private generateDeprescribeRecommendation(
     medicationName: string,
-    entry: FormularyEntry,
+    entry: IMedicationTier,
     confidence: number,
     matchType: string,
     estimatedSavings: number | null,
   ): RecommendationResult {
-    const clinicalConsiderations =
-      entry.clinical_considerations || entry.Clinical_Considerations;
-
     let rationale =
       'This medication should be deprescribed or reconsidered in hospice care.';
-    if (clinicalConsiderations) {
-      rationale += ` ${clinicalConsiderations}`;
-    }
 
     return {
       recommendationType: 'DEPRESCRIBE',
@@ -280,7 +216,6 @@ export class RecommendationEngine {
       hospiceCovered: false,
       matchConfidence: confidence,
       matchType,
-      clinicalConsiderations,
       reviewRequired: true,
       source: 'Formulary Database',
     };

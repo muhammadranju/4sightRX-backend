@@ -1,219 +1,135 @@
-import { FormularyDataService } from './formularyData.service';
+import { MedicationTier } from '../medicationTier/medicationTier.model';
+import { IMedicationTier } from '../medicationTier/medicationTier.interface';
 import { MedicationNormalizationService } from './medicationNormalization.service';
 
-interface FormularyEntry {
-  tier?: string;
-  Tier?: string;
-  generic?: string;
-  Generic?: string;
-  brand?: string;
-  Brand?: string;
-  strength_form?: string;
-  Strength_Form?: string;
-  route?: string;
-  Route?: string;
-  typical_dose?: string;
-  Typical_Dose?: string;
-  frequency?: string;
-  Frequency?: string;
-  unit_cost?: string;
-  Unit_Cost?: string;
-  estimated_30_day_cost?: string;
-  Estimated_30_Day_Cost?: string;
-  primary_alternative?: string;
-  Primary_Alternative?: string;
-  secondary_alternative?: string;
-  Secondary_Alternative?: string;
-  clinical_considerations?: string;
-  Clinical_Considerations?: string;
-}
-
 interface MatchResult {
-  entry: FormularyEntry;
+  entry: IMedicationTier;
   matchType: 'exact' | 'generic' | 'fuzzy' | 'therapeutic';
   confidence: number;
   category: 'preferred' | 'nonFormulary' | 'deprescribe';
 }
 
 export class MedicationMatchingEngine {
-  private formularyDataService: FormularyDataService;
-
-  constructor() {
-    this.formularyDataService = FormularyDataService.getInstance();
-  }
+  constructor() {}
 
   async matchMedication(
     medicationName: string,
     strength?: string,
     route?: string,
   ): Promise<MatchResult | null> {
-    await this.formularyDataService.loadFormularyData();
-
     const normalizedName =
       MedicationNormalizationService.normalizeMedicationName(medicationName);
     const normalizedRoute = route
       ? MedicationNormalizationService.normalizeRoute(route)
       : '';
 
-    const allFormularies = this.formularyDataService.getAllFormularyEntries();
-
     let result: MatchResult | null = null;
 
-    result = this.tryExactMatch(
-      normalizedName,
-      normalizedRoute,
-      allFormularies,
-    );
+    result = await this.tryExactMatch(normalizedName, normalizedRoute);
     if (result) return result;
 
-    result = this.tryGenericNameMatch(
-      normalizedName,
-      normalizedRoute,
-      allFormularies,
-    );
+    result = await this.tryGenericNameMatch(normalizedName, normalizedRoute);
     if (result) return result;
 
-    result = this.tryFuzzyMatch(
-      normalizedName,
-      normalizedRoute,
-      allFormularies,
-    );
+    result = await this.tryFuzzyMatch(normalizedName, normalizedRoute);
     if (result) return result;
 
     return null;
   }
 
-  private tryExactMatch(
+  private mapTierToCategory(tier: string): 'preferred' | 'nonFormulary' | 'deprescribe' {
+    const t = tier.toLowerCase();
+    if (t.startsWith('p') || t === 'preferred') return 'preferred';
+    if (t.startsWith('d') || t === 'deprescribe') return 'deprescribe';
+    return 'nonFormulary';
+  }
+
+  private async tryExactMatch(
     normalizedName: string,
     normalizedRoute: string,
-    formularies: {
-      preferred: FormularyEntry[];
-      nonFormulary: FormularyEntry[];
-      deprescribe: FormularyEntry[];
-    },
-  ): MatchResult | null {
-    const categories: Array<{
-      entries: FormularyEntry[];
-      category: 'preferred' | 'nonFormulary' | 'deprescribe';
-    }> = [
-      { entries: formularies.deprescribe, category: 'deprescribe' },
-      { entries: formularies.nonFormulary, category: 'nonFormulary' },
-      { entries: formularies.preferred, category: 'preferred' },
-    ];
+  ): Promise<MatchResult | null> {
+    const nameRegex = new RegExp(`^${normalizedName}$`, 'i');
+    const query: any = {
+      $or: [{ medication: nameRegex }, { brandName: nameRegex }],
+    };
 
-    for (const { entries, category } of categories) {
-      for (const entry of entries) {
-        const generic = (entry.generic || entry.Generic || '').toLowerCase();
-        const brand = (entry.brand || entry.Brand || '').toLowerCase();
-        const entryRoute = MedicationNormalizationService.normalizeRoute(
-          entry.route || entry.Route || '',
-        );
+    const docs = await MedicationTier.find(query).lean() as unknown as IMedicationTier[];
 
-        if (
-          (generic.includes(normalizedName) ||
-            brand.includes(normalizedName)) &&
-          (normalizedRoute === '' || entryRoute === normalizedRoute)
-        ) {
-          return {
-            entry,
-            matchType: 'exact',
-            confidence: 0.95,
-            category,
-          };
-        }
+    for (const entry of docs) {
+      const entryRoute = MedicationNormalizationService.normalizeRoute(entry.route || '');
+      if (normalizedRoute === '' || entryRoute === normalizedRoute) {
+        return {
+          entry,
+          matchType: 'exact',
+          confidence: 0.95,
+          category: this.mapTierToCategory(entry.tier),
+        };
       }
     }
 
     return null;
   }
 
-  private tryGenericNameMatch(
+  private async tryGenericNameMatch(
     normalizedName: string,
     normalizedRoute: string,
-    formularies: {
-      preferred: FormularyEntry[];
-      nonFormulary: FormularyEntry[];
-      deprescribe: FormularyEntry[];
-    },
-  ): MatchResult | null {
-    const categories: Array<{
-      entries: FormularyEntry[];
-      category: 'preferred' | 'nonFormulary' | 'deprescribe';
-    }> = [
-      { entries: formularies.deprescribe, category: 'deprescribe' },
-      { entries: formularies.nonFormulary, category: 'nonFormulary' },
-      { entries: formularies.preferred, category: 'preferred' },
-    ];
+  ): Promise<MatchResult | null> {
+    const nameWords = normalizedName.split(' ').filter(w => w.length > 2);
+    if (nameWords.length === 0) return null;
 
-    for (const { entries, category } of categories) {
-      for (const entry of entries) {
-        const generic = (entry.generic || entry.Generic || '').toLowerCase();
-        const entryRoute = MedicationNormalizationService.normalizeRoute(
-          entry.route || entry.Route || '',
-        );
+    const regexPattern = nameWords.join('|');
+    const nameRegex = new RegExp(`\\b(${regexPattern})\\b`, 'i');
 
-        const nameWords = normalizedName.split(' ');
-        const genericWords = generic.split(' ');
+    const query: any = {
+      medication: nameRegex,
+    };
 
-        const hasCommonWords = nameWords.some(
-          word => word.length > 2 && genericWords.includes(word),
-        );
+    const docs = await MedicationTier.find(query).lean() as unknown as IMedicationTier[];
 
-        if (
-          hasCommonWords &&
-          (normalizedRoute === '' || entryRoute === normalizedRoute)
-        ) {
-          return {
-            entry,
-            matchType: 'generic',
-            confidence: 0.8,
-            category,
-          };
-        }
+    for (const entry of docs) {
+      const entryRoute = MedicationNormalizationService.normalizeRoute(entry.route || '');
+      if (normalizedRoute === '' || entryRoute === normalizedRoute) {
+        return {
+          entry,
+          matchType: 'generic',
+          confidence: 0.8,
+          category: this.mapTierToCategory(entry.tier),
+        };
       }
     }
 
     return null;
   }
 
-  private tryFuzzyMatch(
+  private async tryFuzzyMatch(
     normalizedName: string,
     normalizedRoute: string,
-    formularies: {
-      preferred: FormularyEntry[];
-      nonFormulary: FormularyEntry[];
-      deprescribe: FormularyEntry[];
-    },
-  ): MatchResult | null {
-    const categories: Array<{
-      entries: FormularyEntry[];
-      category: 'preferred' | 'nonFormulary' | 'deprescribe';
-    }> = [
-      { entries: formularies.deprescribe, category: 'deprescribe' },
-      { entries: formularies.nonFormulary, category: 'nonFormulary' },
-      { entries: formularies.preferred, category: 'preferred' },
-    ];
+  ): Promise<MatchResult | null> {
+    // Utilize text search index for candidate fetching, then apply Levenshtein distance filtering
+    const query: any = {
+      $text: { $search: normalizedName },
+    };
 
-    for (const { entries, category } of categories) {
-      for (const entry of entries) {
-        const generic = (entry.generic || entry.Generic || '').toLowerCase();
-        const brand = (entry.brand || entry.Brand || '').toLowerCase();
-        const entryRoute = MedicationNormalizationService.normalizeRoute(
-          entry.route || entry.Route || '',
-        );
+    const docs = await MedicationTier.find(query)
+      .limit(50)
+      .lean() as unknown as IMedicationTier[];
 
-        if (
-          (this.levenshteinDistance(normalizedName, generic) <= 3 ||
-            this.levenshteinDistance(normalizedName, brand) <= 3) &&
-          (normalizedRoute === '' || entryRoute === normalizedRoute)
-        ) {
-          return {
-            entry,
-            matchType: 'fuzzy',
-            confidence: 0.6,
-            category,
-          };
-        }
+    for (const entry of docs) {
+      const generic = (entry.medication || '').toLowerCase();
+      const brand = (entry.brandName || '').toLowerCase();
+      const entryRoute = MedicationNormalizationService.normalizeRoute(entry.route || '');
+
+      if (
+        (this.levenshteinDistance(normalizedName, generic) <= 3 ||
+          this.levenshteinDistance(normalizedName, brand) <= 3) &&
+        (normalizedRoute === '' || entryRoute === normalizedRoute)
+      ) {
+        return {
+          entry,
+          matchType: 'fuzzy',
+          confidence: 0.6,
+          category: this.mapTierToCategory(entry.tier),
+        };
       }
     }
 

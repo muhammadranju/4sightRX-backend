@@ -11,6 +11,8 @@ import { FacilityRoute } from '../app/modules/facility/facility.route';
 import { OrganizationRoutes } from '../app/modules/organization/organization.route';
 import { AllergyRoutes } from '../app/modules/allergy/allergy.route';
 import { FormularyRoutes } from '../app/modules/formulary/formulary.route';
+import { ImportRoutes } from '../app/modules/import/import.route';
+import { MedicationTierRoutes } from '../app/modules/medicationTier/medicationTier.route';
 const router = express.Router();
 
 const apiRoutes = [
@@ -25,6 +27,8 @@ const apiRoutes = [
   { path: '/organizations', route: OrganizationRoutes },
   { path: '/allergies', route: AllergyRoutes },
   { path: '/formulary', route: FormularyRoutes },
+  { path: '/import', route: ImportRoutes },
+  { path: '/medication-tier', route: MedicationTierRoutes },
 ];
 
 router.use(activityLogger());
