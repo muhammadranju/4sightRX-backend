@@ -39,6 +39,10 @@ const formularyComparisonSchema = new Schema<IFormularyComparison>(
       default: 0,
       min: 0,
     },
+    alternativeMonthlyCost: {
+      type: Number,
+      default: 0,
+    },
     hospiceCovered: {
       type: Boolean,
       required: [true, 'Hospice covered flag is required'],

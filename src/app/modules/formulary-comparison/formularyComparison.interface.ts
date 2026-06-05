@@ -14,6 +14,7 @@ export interface IFormularyComparison {
   recommendedMedication: string;
   rationale: string;
   estimatedSavings: number;
+  alternativeMonthlyCost?: number;
   hospiceCovered: boolean;
   action: FormularyAction;
   sessionId?: string;

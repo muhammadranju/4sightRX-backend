@@ -12,6 +12,7 @@ export interface IAIRecommendationResponse {
   rationale: string;
   estimatedSavings: number;
   hospiceCovered: boolean;
+  alternativeMonthlyCost?: number;
 }
 
 /**
@@ -82,6 +83,7 @@ const buildFallbackResponse = (
     ? `Therapeutic equivalent available: ${input.therapeuticAlternative}.`
     : 'Continue current therapy. No alternative found in formulary.',
   estimatedSavings: 0,
+  alternativeMonthlyCost: 0,
   hospiceCovered: false,
 });
 
@@ -98,16 +100,18 @@ STRICT RULES:
 1. "recommendedMedication" MUST be a real, specific drug name. NEVER use "Continue Current Therapy".
 2. The recommended drug MUST be different from "${input.currentMedication}".
 3. If a suggested alternative is provided, use it unless clinically inappropriate.
-4. "estimatedSavings" = estimated yearly savings in USD. Must be an integer ≥ 0.
+4. "estimatedSavings" = estimated yearly savings in USD. Must be an integer >= 0.
 5. "hospiceCovered" = true if typically covered under hospice.
 6. "rationale" = concise 1–2 sentence clinical justification.
+7. "alternativeMonthlyCost" = estimated monthly cost of the alternative in USD. Must be a number >= 0.
 
 Respond ONLY with this exact JSON structure:
 {
   "recommendedMedication": "string",
   "rationale": "string",
   "estimatedSavings": number,
-  "hospiceCovered": boolean
+  "hospiceCovered": boolean,
+  "alternativeMonthlyCost": number
 }`;
 };
 

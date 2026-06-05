@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { Request, Response } from 'express';
 
 import { IMedicationTier } from './medicationTier.interface';
@@ -20,7 +21,8 @@ const createMedicationTier = catchAsync(async (req: Request, res: Response) => {
   // Support both single object and array payloads
   if (Array.isArray(body)) {
     const sanitizedArray = body.map(sanitizePayload);
-    const result = await MedicationTierService.bulkCreateMedicationTiers(sanitizedArray);
+    const result =
+      await MedicationTierService.bulkCreateMedicationTiers(sanitizedArray);
     return sendResponse(res, {
       statusCode: StatusCodes.CREATED,
       success: true,
@@ -29,7 +31,9 @@ const createMedicationTier = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  const result = await MedicationTierService.createMedicationTier(sanitizePayload(body) as IMedicationTier);
+  const result = await MedicationTierService.createMedicationTier(
+    sanitizePayload(body) as IMedicationTier,
+  );
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,

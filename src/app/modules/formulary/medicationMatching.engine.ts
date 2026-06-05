@@ -110,9 +110,19 @@ export class MedicationMatchingEngine {
       $text: { $search: normalizedName },
     };
 
-    const docs = await MedicationTier.find(query)
-      .limit(50)
-      .lean() as unknown as IMedicationTier[];
+    let docs: IMedicationTier[] = [];
+    try {
+      docs = await MedicationTier.find(query)
+        .limit(50)
+        .lean() as unknown as IMedicationTier[];
+    } catch (error: any) {
+      // Handle "text index required" error (code 27) which happens if the collection is empty/new
+      if (error.code === 27 || error.message.includes('text index required')) {
+        console.warn('⚠️ Text index missing or collection empty for MedicationTier. Skipping fuzzy match.');
+        return null;
+      }
+      throw error;
+    }
 
     for (const entry of docs) {
       const generic = (entry.medication || '').toLowerCase();

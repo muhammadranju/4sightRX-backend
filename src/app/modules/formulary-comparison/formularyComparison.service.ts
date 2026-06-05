@@ -1,17 +1,16 @@
 import mongoose from 'mongoose';
+import { nanoid } from 'nanoid';
+import { RecommendationEngine } from '../formulary/recommendationEngine.service';
 import Medication from '../medication/medication.model';
-import Therapeutic from '../therapeutic/therapeutic.model';
 import {
   FormularyAction,
   IFormularyComparison,
   IFormularyInterchange,
 } from './formularyComparison.interface';
 import FormularyComparison from './formularyComparison.model';
+import { generateFormularyPDF } from './formularyComparison.utils';
 import { AnalyzeInput } from './formularyComparison.validation';
 import FormularyInterchange from './formularyInterchange.model';
-import { generateFormularyPDF } from './formularyComparison.utils';
-import { nanoid } from 'nanoid';
-import { RecommendationEngine } from '../formulary/recommendationEngine.service';
 
 export interface IFormularyComparisonSummary {
   continuedMedications: IFormularyComparison[]; // All medicines user accepted
@@ -70,6 +69,7 @@ export const analyzeFormularyService = async (
         recommendedMedication: recommendation.recommendedMedication,
         rationale: recommendation.rationale,
         estimatedSavings: recommendation.estimatedSavings,
+        alternativeMonthlyCost: recommendation.alternativeMonthlyCost,
         hospiceCovered: recommendation.hospiceCovered,
         // action: 'pending',
       });

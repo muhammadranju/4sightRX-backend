@@ -37,6 +37,11 @@ const MedicationTierSchema = new Schema<IMedicationTier>(
       required: true,
       min: 0,
     },
+    alternativeMonthlyCost: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
     preferredAlternative: {
       type: String,
       trim: true,

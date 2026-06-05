@@ -25,6 +25,7 @@ export interface RecommendationResult {
   clinicalConsiderations?: string;
   reviewRequired?: boolean;
   source?: string;
+  alternativeMonthlyCost?: number;
 }
 
 export class RecommendationEngine {
@@ -123,6 +124,7 @@ export class RecommendationEngine {
         matchType: 'ai_fallback',
         reviewRequired: true,
         source: 'Gemini Fallback Engine',
+        alternativeMonthlyCost: aiResponse.alternativeMonthlyCost,
       };
     } catch (error) {
       console.error('AI fallback failed:', error);
@@ -157,6 +159,7 @@ export class RecommendationEngine {
       matchType,
       reviewRequired: false,
       source: 'Formulary Database',
+      alternativeMonthlyCost: entry.alternativeMonthlyCost || undefined,
     };
   }
 
@@ -195,6 +198,7 @@ export class RecommendationEngine {
       matchType,
       reviewRequired: true,
       source: 'Formulary Database',
+      alternativeMonthlyCost: entry.alternativeMonthlyCost || undefined,
     };
   }
 
@@ -218,6 +222,7 @@ export class RecommendationEngine {
       matchType,
       reviewRequired: true,
       source: 'Formulary Database',
+      alternativeMonthlyCost: entry.alternativeMonthlyCost || undefined,
     };
   }
 }

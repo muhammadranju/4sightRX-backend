@@ -8,5 +8,6 @@ export interface IMedicationTier extends Document {
   route: string;
   frequency: string;
   monthlyCost: number;
+  alternativeMonthlyCost: number;
   preferredAlternative?: string;
 }
